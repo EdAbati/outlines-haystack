@@ -58,11 +58,11 @@ class _BaseOpenAIGenerator:
         self.default_query = default_query
 
         self.model = models.openai(
-            model_or_client=self.model_name,
-            api_key=self.api_key,
+            self.model_name,
+            api_key=self.api_key.resolve_value(),
             organization=self.organization,
             project=self.project,
-            base_url=self.api_base_url,
+            base_url=self.base_url,
             timeout=self.timeout,
             max_retries=self.max_retries,
             default_headers=self.default_headers,
