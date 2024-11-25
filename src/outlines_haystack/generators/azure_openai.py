@@ -19,8 +19,8 @@ class _BaseAzureOpenAIGenerator:
         azure_endpoint: Optional[str] = None,
         azure_deployment: Optional[str] = None,
         api_version: Optional[str] = None,
-        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY"),  # noqa: B008
-        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN"),  # noqa: B008
+        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
+        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
         organization: Optional[str] = None,
         project: Optional[str] = None,
         timeout: Optional[int] = None,
@@ -50,15 +50,6 @@ class _BaseAzureOpenAIGenerator:
             default_headers: The default headers to use in the Azure OpenAI API client.
             default_query: The default query parameters to use in the Azure OpenAI API client.
         """
-        self.model_name = model_name
-        self.azure_endpoint = azure_endpoint
-        self.azure_deployment = azure_deployment
-        self.api_version = api_version
-        self.api_key = api_key
-        self.azure_ad_token = azure_ad_token
-        self.organization = organization
-        self.project = project
-
         # Same defaults as in Haystack
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L116-L125
         azure_endpoint = azure_endpoint or os.environ.get("AZURE_OPENAI_ENDPOINT")
@@ -69,6 +60,15 @@ class _BaseAzureOpenAIGenerator:
         if api_key is None and azure_ad_token is None:
             msg = "Please provide an API key or an Azure Active Directory token."
             raise ValueError(msg)
+
+        self.model_name = model_name
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
+        self.api_version = api_version
+        self.api_key = api_key
+        self.azure_ad_token = azure_ad_token
+        self.organization = organization
+        self.project = project
 
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L139-L140
         self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", 30.0))
