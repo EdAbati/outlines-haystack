@@ -54,6 +54,7 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
 ]
+features = ["openai", "transformers"]
 python = "3.9" # This is the minimum supported version
 
 [tool.hatch.envs.default.scripts]
