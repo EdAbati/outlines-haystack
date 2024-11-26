@@ -47,6 +47,10 @@ Source = "https://github.com/EdAbati/outlines-haystack"
 [tool.hatch.version]
 path = "src/outlines_haystack/__about__.py"
 
+# Python versions matrix
+[[tool.hatch.envs.default.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12"]
+
 # Default environment
 [tool.hatch.envs.default]
 installer = "uv"
@@ -72,11 +76,6 @@ test-cov-all = [
 ]
 
 
-# Python versions matrix
-[[tool.hatch.envs.all.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12"]
-
-
 # Environment for documentation
 [tool.hatch.envs.docs]
 dependencies = [
@@ -95,24 +94,23 @@ check = "mypy --install-types --non-interactive {args:src/outlines_haystack test
 
 
 # Linting
-[tool.hatch.envs.lint]
-detached = true
-dependencies = ["black>=24.3.0", "nbqa>=1.8.5", "ruff>=0.3.4"]
-[tool.hatch.envs.lint.scripts]
-style = [
-  "ruff check {args:.}",
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["black>=24.10.0", "nbqa>=1.9.1", "ruff>=0.8.0"]
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = [
   "black --check --diff {args:.}",
   "nbqa black --check --diff notebooks/*",
 ]
-fmt = [
+format-fix = [
   "black {args:.}",
-  "ruff check --fix {args:.}",
   "nbqa black notebooks/*",
-  "style",
 ]
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
 
 
-# Tools
+# Format/Linting Tools
 [tool.black]
 target-version = ["py39"]
 line-length = 120
