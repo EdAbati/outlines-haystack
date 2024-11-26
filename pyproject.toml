@@ -7,7 +7,7 @@ name = "outlines-haystack"
 dynamic = ["version"]
 description = 'Haystack integration with outlines.'
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.13"
 license = { file = "LICENSE" }
 keywords = [
   "nlp",
@@ -55,7 +55,6 @@ dependencies = [
   "pytest",
 ]
 features = ["openai", "transformers"]
-python = "3.9" # This is the minimum supported version
 
 [tool.hatch.envs.default.overrides]
 platform.macos.features = ["mlxlm", "openai", "transformers"]
@@ -72,6 +71,8 @@ test-cov-all = [
   "cov-report",
 ]
 
+
+# Python versions matrix
 [[tool.hatch.envs.all.matrix]]
 python = ["3.9", "3.10", "3.11", "3.12"]
 
