@@ -46,7 +46,7 @@ jobs:
     #   run: hatch run types:check
 
     - name: Run unit tests
-      run: >-
+      run: >
         hatch shell default
         uv pip list
         hatch run test-cov-all
