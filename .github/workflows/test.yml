@@ -47,5 +47,5 @@ jobs:
 
     - name: Run unit tests
       run: |
-        hatch run test-cov-all -py ${{ matrix.python-version }}
+        hatch run -py ${{ matrix.python-version }} test-cov-all
       shell: bash
