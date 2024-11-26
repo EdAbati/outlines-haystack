@@ -47,7 +47,8 @@ jobs:
 
     - name: Run unit tests
       run: |
-        hatch shell default
+        hatch env create default
+        source "$(hatch env find default)/bin/activate"
         uv pip list
         hatch run test-cov-all
       shell: bash
