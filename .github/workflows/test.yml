@@ -47,8 +47,5 @@ jobs:
 
     - name: Run unit tests
       run: |
-        hatch env create default
-        source "$(hatch env find default)/bin/activate"
-        uv pip list
-        hatch run test-cov-all
+        hatch run test-cov-all -py ${{ matrix.python-version }}
       shell: bash
