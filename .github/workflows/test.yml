@@ -47,5 +47,5 @@ jobs:
 
     - name: Run unit tests
       run: |
-        hatch test --python ${{ matrix.python-version }}
+        hatch test --python ${{ matrix.python-version }} --cover --show
       shell: bash
