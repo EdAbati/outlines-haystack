@@ -57,6 +57,9 @@ dependencies = [
 features = ["openai", "transformers"]
 python = "3.9" # This is the minimum supported version
 
+[tool.hatch.envs.default.overrides]
+platform.macos.features = ["mlxlm", "openai", "transformers"]
+
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"
