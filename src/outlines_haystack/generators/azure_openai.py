@@ -57,7 +57,7 @@ class _BaseAzureOpenAIGenerator:
             msg = "Please provide an Azure endpoint or set the environment variable AZURE_OPENAI_ENDPOINT."
             raise ValueError(msg)
 
-        if api_key is None and azure_ad_token is None:
+        if api_key.resolve_value() is None and azure_ad_token.resolve_value() is None:
             msg = "Please provide an API key or an Azure Active Directory token."
             raise ValueError(msg)
 
@@ -82,8 +82,8 @@ class _BaseAzureOpenAIGenerator:
             model_name=self.model_name,
             azure_endpoint=self.azure_endpoint,
             api_version=self.api_version,
-            api_key=self.api_key,
-            azure_ad_token=self.azure_ad_token,
+            api_key=self.api_key.resolve_value(),
+            azure_ad_token=self.azure_ad_token.resolve_value(),
             organization=self.organization,
             project=self.project,
             timeout=self.timeout,
@@ -142,5 +142,5 @@ class AzureOpenAITextGenerator(_BaseAzureOpenAIGenerator):
             self.model.config.seed = seed
 
         generate_text_func = generate.text(self.model)
-        answer = generate_text_func(prompts=prompt, max_tokens=max_tokens, stop_at=stop_at)
+        answer = generate_text_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
         return {"replies": [answer]}
