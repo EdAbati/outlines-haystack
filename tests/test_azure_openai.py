@@ -181,7 +181,7 @@ def test_run() -> None:
 
     with mock.patch("outlines_haystack.generators.azure_openai.generate.text") as mock_generate_text:
         mock_generate_text.return_value = mock_text_func
-        response = component.run("What's Natural Language Processing?")
+        response = component.run("How are you?")
 
     # check that the component returns the correct ChatMessage response
     assert isinstance(response, dict)
