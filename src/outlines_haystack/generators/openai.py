@@ -116,5 +116,5 @@ class OpenAITextGenerator(_BaseOpenAIGenerator):
             self.model.config.seed = seed
 
         generate_text_func = generate.text(self.model)
-        answer = generate_text_func(prompts=prompt, max_tokens=max_tokens, stop_at=stop_at)
+        answer = generate_text_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
         return {"replies": [answer]}

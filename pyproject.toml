@@ -7,7 +7,7 @@ name = "outlines-haystack"
 dynamic = ["version"]
 description = 'Haystack integration with outlines.'
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.13"
 license = { file = "LICENSE" }
 keywords = [
   "nlp",
@@ -47,6 +47,7 @@ Source = "https://github.com/EdAbati/outlines-haystack"
 [tool.hatch.version]
 path = "src/outlines_haystack/__about__.py"
 
+
 # Default environment
 [tool.hatch.envs.default]
 installer = "uv"
@@ -55,25 +56,58 @@ dependencies = [
   "pytest",
 ]
 features = ["openai", "transformers"]
-python = "3.9" # This is the minimum supported version
 
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report",
-]
-test-cov-all = [
-  "test-cov",
-  "cov-report",
-]
+[tool.hatch.envs.default.overrides]
+platform.macos.features = ["mlxlm", "openai", "transformers"]
 
-[[tool.hatch.envs.all.matrix]]
+[[tool.hatch.envs.default.matrix]]
 python = ["3.9", "3.10", "3.11", "3.12"]
 
+# Unit tests
+[tool.hatch.envs.hatch-test]
+installer = "uv"
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+features = ["openai", "transformers"]
 
-# Environment for documentation
+[tool.hatch.envs.hatch-test.overrides]
+platform.macos.features = ["mlxlm", "openai", "transformers"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.12", "3.11", "3.10", "3.9"]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "pytest{env:HATCH_TEST_ARGS:} {args}"
+run-cov = "coverage run -m pytest{env:HATCH_TEST_ARGS:} {args}"
+cov-combine = "coverage combine"
+cov-report = "coverage report"
+
+[tool.coverage.run]
+source_pkgs = ["outlines_haystack", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/outlines_haystack/__about__.py",
+]
+
+[tool.coverage.paths]
+outlines_haystack = [
+  "src/outlines_haystack",
+  "*/outlines-haystack/src/outlines_haystack",
+]
+tests = ["tests", "*/outlines-haystack/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+
+# Documentation
 [tool.hatch.envs.docs]
 dependencies = [
   "notebook",
@@ -86,29 +120,29 @@ dependencies = [
 extra-dependencies = [
   "mypy>=1.0.0",
 ]
+
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/outlines_haystack tests}"
 
 
 # Linting
-[tool.hatch.envs.lint]
-detached = true
-dependencies = ["black>=24.3.0", "nbqa>=1.8.5", "ruff>=0.3.4"]
-[tool.hatch.envs.lint.scripts]
-style = [
-  "ruff check {args:.}",
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["black>=24.10.0", "nbqa>=1.9.1", "ruff>=0.8.0"]
+
+[tool.hatch.envs.hatch-static-analysis.scripts]
+format-check = [
   "black --check --diff {args:.}",
   "nbqa black --check --diff notebooks/*",
 ]
-fmt = [
+format-fix = [
   "black {args:.}",
-  "ruff check --fix {args:.}",
   "nbqa black notebooks/*",
-  "style",
 ]
+lint-check = "ruff check {args:.}"
+lint-fix = "ruff check --fix {args:.}"
 
 
-# Tools
+# Format/Linting Tools
 [tool.black]
 target-version = ["py39"]
 line-length = 120
@@ -146,27 +180,4 @@ convention = "google"
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-# Tests can use magic values, assertions, and relative imports
-"tests/*" = ["PLR2004", "S101", "TID252", "D100", "D103"]
-
-[tool.coverage.run]
-source_pkgs = ["outlines_haystack", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/outlines_haystack/__about__.py",
-]
-
-[tool.coverage.paths]
-outlines_haystack = [
-  "src/outlines_haystack",
-  "*/outlines-haystack/src/outlines_haystack",
-]
-tests = ["tests", "*/outlines-haystack/tests"]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+"tests/*" = ["PLR2004", "S101", "TID252", "D100", "D103", "SLF001"]
