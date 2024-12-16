@@ -33,6 +33,7 @@ def test_init_params() -> None:
         timeout=60,
         max_retries=10,
         default_headers={"test-header": "test-value"},
+        generation_kwargs={"temperature": 0.5},
     )
     assert component.model_name == "gpt-4o-mini"
     assert component.api_key.resolve_value() == "test-api-key"
@@ -71,7 +72,7 @@ def test_to_dict() -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
-            "generation_kwargs": {"temperature": 0.5},
+            "generation_kwargs": {},
         },
     }
 

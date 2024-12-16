@@ -84,7 +84,7 @@ class _BaseAzureOpenAIGenerator:
         self.default_query = default_query
 
         self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
-        self.openai_config = set_openai_config(self.generation_kwargs)
+        self.openai_config = set_openai_config(generation_kwargs)
 
         self.model = models.azure_openai(
             deployment_name=self.azure_deployment,

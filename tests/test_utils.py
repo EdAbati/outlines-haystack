@@ -11,7 +11,7 @@ def test_sampling_algorithm(sampling_algo_name: str) -> None:
 
 
 def test_sampling_algorithm_error() -> None:
-    with pytest.raises(ValueError, match="'test' is not a valid Sampler"):
+    with pytest.raises(ValueError, match="'test' is not a valid SamplingAlgorithm"):
         SamplingAlgorithm("test")
 
 
