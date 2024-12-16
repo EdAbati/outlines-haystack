@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 from haystack import Pipeline
+from outlines import samplers
 
 from outlines_haystack.generators.mlxlm import MLXLMTextGenerator
 from tests.utils import mock_text_func
@@ -15,6 +16,18 @@ def test_init_default() -> None:
     assert component.adapter_path is None
     assert not component.lazy
     assert not component._warmed_up
+    assert component.sampling_algorithm == "multinomial"
+    assert component.sampling_algorithm_kwargs == {}
+
+
+def test_init_different_sampler() -> None:
+    component = MLXLMTextGenerator(
+        model_name="mlx-community/Phi-3-mini-4k-instruct-8bit",
+        sampling_algorithm="multinomial",
+        sampling_algorithm_kwargs={"temperature": 0.5},
+    )
+    assert component.sampling_algorithm == "multinomial"
+    assert component.sampling_algorithm_kwargs == {"temperature": 0.5}
 
 
 @mock.patch("outlines_haystack.generators.mlxlm.models.mlxlm", return_value="mock_model")
@@ -32,6 +45,7 @@ def test_warm_up(mock_mlxlm: mock.Mock) -> None:
         adapter_path=None,
         lazy=False,
     )
+    assert isinstance(component.sampler, samplers.MultinomialSampler)
 
 
 def test_run_not_warm() -> None:
@@ -43,16 +57,28 @@ def test_run_not_warm() -> None:
         component.run(prompt="test-prompt")
 
 
-def test_to_dict_error() -> None:
+def test_to_dict() -> None:
     component = MLXLMTextGenerator(
         model_name="mlx-community/some-model",
         tokenizer_config={"eos_token": "<|endoftext|>", "trust_remote_code": True},
+        sampling_algorithm_kwargs={"temperature": 0.5},
     )
-    with pytest.raises(AttributeError, match="'MLXLMTextGenerator' object has no attribute 'to_dict'"):
-        component.to_dict()
+    expected_dict = {
+        "type": "outlines_haystack.generators.mlxlm.MLXLMTextGenerator",
+        "init_parameters": {
+            "model_name": "mlx-community/some-model",
+            "tokenizer_config": {"eos_token": "<|endoftext|>", "trust_remote_code": True},
+            "model_config": {},
+            "adapter_path": None,
+            "lazy": False,
+            "sampling_algorithm": "multinomial",
+            "sampling_algorithm_kwargs": {"temperature": 0.5},
+        },
+    }
+    assert component.to_dict() == expected_dict
 
 
-def test_from_dict_error() -> None:
+def test_from_dict() -> None:
     component_dict = {
         "type": "outlines_haystack.generators.mlxlm.MLXLMTextGenerator",
         "init_parameters": {
@@ -60,8 +86,13 @@ def test_from_dict_error() -> None:
             "tokenizer_config": {"eos_token": "<|endoftext|>", "trust_remote_code": True},
         },
     }
-    with pytest.raises(AttributeError, match="type object 'MLXLMTextGenerator' has no attribute 'from_dict'"):
-        MLXLMTextGenerator.from_dict(component_dict)
+    component = MLXLMTextGenerator.from_dict(component_dict)
+    assert component.model_name == "mlx-community/some-model"
+    assert component.tokenizer_config == {"eos_token": "<|endoftext|>", "trust_remote_code": True}
+    assert component.model_config == {}
+    assert component.adapter_path is None
+    assert not component.lazy
+    assert component.sampling_algorithm == "multinomial"
 
 
 def test_pipeline() -> None:
