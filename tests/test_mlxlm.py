@@ -15,7 +15,6 @@ def test_init_default() -> None:
     assert component.model_config == {}
     assert component.adapter_path is None
     assert not component.lazy
-    assert not component._warmed_up
     assert component.sampling_algorithm == "multinomial"
     assert component.sampling_algorithm_kwargs == {}
 
@@ -34,6 +33,7 @@ def test_init_different_sampler() -> None:
 def test_warm_up(mock_mlxlm: mock.Mock) -> None:
     component = MLXLMTextGenerator(model_name="mlx-community/fake_model")
     assert component.model is None
+    assert component.sampler is None
     assert not component._warmed_up
     component.warm_up()
     assert component.model == "mock_model"
