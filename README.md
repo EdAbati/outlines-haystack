@@ -31,7 +31,7 @@ pip install outlines-haystack
 >
 > -- <cite>[Outlines docs](https://dottxt-ai.github.io/outlines/latest/welcome/)</cite>
 
-This library allow you to use [`outlines`](https://dottxt-ai.github.io/outlines/latest/) generators in your Haystack pipelines!
+This library allow you to use [`outlines`](https://dottxt-ai.github.io/outlines/latest/) generators in your [Haystack](https://haystack.deepset.ai) pipelines!
 
 This library currently supports the following generators:
 - [x] [Text](https://dottxt-ai.github.io/outlines/latest/reference/text/): _simply_ generate text
