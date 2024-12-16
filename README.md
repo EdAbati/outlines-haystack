@@ -55,7 +55,16 @@ This library currently supports the following generators:
 
 ### Text Generation
 
-TODO
+```python
+>>> generator = TransformersTextGenerator(
+...     model_name="microsoft/Phi-3-mini-4k-instruct",
+...     device="cuda",
+...     sampling_algorithm_kwargs={"temperature": 0.5},
+... )
+>>> generator.warm_up()
+>>> generator.run(prompt="What is the capital of Italy?")
+{'replies': ['\n\n# Answer\nThe capital of Italy is Rome.']}
+```
 
 ## License
 
