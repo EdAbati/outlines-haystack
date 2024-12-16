@@ -11,6 +11,8 @@ from haystack.utils import Secret, deserialize_secrets_inplace
 from outlines import generate, models
 from typing_extensions import Self
 
+from outlines_haystack.generators.openai_utils import set_openai_config
+
 
 class _BaseAzureOpenAIGenerator:
     def __init__(  # noqa: PLR0913
@@ -27,6 +29,7 @@ class _BaseAzureOpenAIGenerator:
         max_retries: Optional[int] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
+        generation_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the Azure OpenAI generator.
 
@@ -49,6 +52,9 @@ class _BaseAzureOpenAIGenerator:
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the Azure OpenAI API client.
             default_query: The default query parameters to use in the Azure OpenAI API client.
+            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
+            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
+            available parameters. If None, defaults to an empty dictionary.
         """
         # Same defaults as in Haystack
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L116-L125
@@ -77,9 +83,13 @@ class _BaseAzureOpenAIGenerator:
         self.default_headers = default_headers
         self.default_query = default_query
 
+        self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
+        self.openai_config = set_openai_config(generation_kwargs)
+
         self.model = models.azure_openai(
             deployment_name=self.azure_deployment,
             model_name=self.model_name,
+            config=self.openai_config,
             azure_endpoint=self.azure_endpoint,
             api_version=self.api_version,
             api_key=self.api_key.resolve_value(),
@@ -107,6 +117,7 @@ class _BaseAzureOpenAIGenerator:
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
+            generation_kwargs=self.generation_kwargs,
         )
 
     @classmethod
