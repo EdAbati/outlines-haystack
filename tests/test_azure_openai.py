@@ -32,6 +32,8 @@ def test_init_default() -> None:
     assert component.max_retries == 5
     assert component.default_headers is None
     assert component.default_query is None
+    assert component.generation_kwargs == {}
+    assert component.openai_config is None
 
 
 def test_init_params() -> None:
@@ -44,6 +46,7 @@ def test_init_params() -> None:
         timeout=60,
         max_retries=10,
         default_headers={"test-header": "test-value"},
+        generation_kwargs={"temperature": 0.5},
     )
     assert component.model_name == "gpt-4o-mini"
     assert component.azure_endpoint == "test-endpoint"
@@ -57,6 +60,8 @@ def test_init_params() -> None:
     assert component.max_retries == 10
     assert component.default_headers == {"test-header": "test-value"}
     assert component.default_query is None
+    assert component.generation_kwargs == {"temperature": 0.5}
+    assert component.openai_config.temperature == 0.5
 
 
 @pytest.mark.parametrize(
@@ -86,6 +91,7 @@ def test_to_dict() -> None:
         timeout=60,
         max_retries=10,
         default_headers={"test-header": "test-value"},
+        generation_kwargs={"temperature": 0.5},
     )
     assert component.to_dict() == {
         "type": "outlines_haystack.generators.azure_openai.AzureOpenAITextGenerator",
@@ -102,6 +108,7 @@ def test_to_dict() -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
+            "generation_kwargs": {"temperature": 0.5},
         },
     }
 
@@ -130,6 +137,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             "timeout": 60,
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
+            "generation_kwargs": {"temperature": 0.5},
         },
     }
     error_context = (
@@ -149,6 +157,8 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             assert component.timeout == 60
             assert component.max_retries == 10
             assert component.default_headers == {"test-header": "test-value"}
+            assert component.generation_kwargs == {"temperature": 0.5}
+            assert component.openai_config.temperature == 0.5
 
 
 @mock.patch.dict(

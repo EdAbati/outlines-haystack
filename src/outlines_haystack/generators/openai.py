@@ -11,19 +11,22 @@ from haystack.utils import Secret, deserialize_secrets_inplace
 from outlines import generate, models
 from typing_extensions import Self
 
+from outlines_haystack.generators.openai_utils import set_openai_config
+
 
 class _BaseOpenAIGenerator:
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
         api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
-        organization: Optional[str] = None,
-        project: Optional[str] = None,
-        base_url: Optional[str] = None,
-        timeout: Optional[int] = None,
-        max_retries: Optional[int] = None,
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
+        generation_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI generator.
 
@@ -42,6 +45,9 @@ class _BaseOpenAIGenerator:
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the OpenAI API client.
             default_query: The default query parameters to use in the OpenAI API client.
+            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
+            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
+            available parameters. If None, defaults to an empty dictionary.
         """
         self.model_name = model_name
         self.api_key = api_key
@@ -57,8 +63,12 @@ class _BaseOpenAIGenerator:
         self.default_headers = default_headers
         self.default_query = default_query
 
+        self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
+        self.openai_config = set_openai_config(generation_kwargs)
+
         self.model = models.openai(
             self.model_name,
+            self.openai_config,
             api_key=self.api_key.resolve_value(),
             organization=self.organization,
             project=self.project,
@@ -81,6 +91,7 @@ class _BaseOpenAIGenerator:
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
+            generation_kwargs=self.generation_kwargs,
         )
 
     @classmethod
