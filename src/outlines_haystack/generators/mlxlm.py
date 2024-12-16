@@ -97,16 +97,12 @@ class MLXLMTextGenerator(_BaseMLXLMGenerator):
         self,
         prompt: str,
         max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
     ) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
             max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
         """
         self._check_component_warmed_up()
 
@@ -114,5 +110,5 @@ class MLXLMTextGenerator(_BaseMLXLMGenerator):
             return {"replies": []}
 
         generate_text_func = generate.text(self.model, self.sampler)
-        answer = generate_text_func(prompts=prompt, max_tokens=max_tokens, stop_at=stop_at, seed=seed)
+        answer = generate_text_func(prompts=prompt, max_tokens=max_tokens)
         return {"replies": [answer]}
