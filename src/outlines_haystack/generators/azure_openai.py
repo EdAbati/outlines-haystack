@@ -9,8 +9,9 @@ from typing import Any, Optional, Union
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
 from outlines import generate, models
-from outlines.models.openai import OpenAIConfig
 from typing_extensions import Self
+
+from outlines_haystack.generators.openai_utils import set_openai_config
 
 
 class _BaseAzureOpenAIGenerator:
@@ -83,7 +84,7 @@ class _BaseAzureOpenAIGenerator:
         self.default_query = default_query
 
         self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
-        self.openai_config = OpenAIConfig(**self.generation_kwargs) if self.generation_kwargs else None
+        self.openai_config = set_openai_config(self.generation_kwargs)
 
         self.model = models.azure_openai(
             deployment_name=self.azure_deployment,

@@ -22,6 +22,8 @@ def test_init_default() -> None:
     assert component.max_retries == 5
     assert component.default_headers is None
     assert component.default_query is None
+    assert component.generation_kwargs == {}
+    assert component.openai_config is None
 
 
 def test_init_params() -> None:
@@ -40,6 +42,8 @@ def test_init_params() -> None:
     assert component.max_retries == 10
     assert component.default_headers == {"test-header": "test-value"}
     assert component.default_query is None
+    assert component.generation_kwargs == {"temperature": 0.5}
+    assert component.openai_config.temperature == 0.5
 
 
 def test_init_value_error() -> None:
@@ -67,6 +71,7 @@ def test_to_dict() -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
+            "generation_kwargs": {"temperature": 0.5},
         },
     }
 
@@ -93,6 +98,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
+            "generation_kwargs": {"temperature": 0.5},
         },
     }
     error_context = (
@@ -110,6 +116,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             assert component.timeout == 60
             assert component.max_retries == 10
             assert component.default_headers == {"test-header": "test-value"}
+            assert component.openai_config.temperature == 0.5
 
 
 @mock.patch.dict(
