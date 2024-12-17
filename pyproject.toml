@@ -60,9 +60,6 @@ features = ["openai", "transformers"]
 [tool.hatch.envs.default.overrides]
 platform.macos.features = ["mlxlm", "openai", "transformers"]
 
-[[tool.hatch.envs.default.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12"]
-
 # Unit tests
 [tool.hatch.envs.hatch-test]
 installer = "uv"
