@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "outlines-haystack"
 dynamic = ["version"]
-description = 'Haystack integration with outlines.'
+description = 'Use `outlines` generators with Haystack.'
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
 license = { file = "LICENSE" }
@@ -181,3 +181,4 @@ docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "S101", "TID252", "D100", "D103", "SLF001"]
+"notebooks/*" = ["ERA001"]
