@@ -1,7 +1,16 @@
+from collections.abc import Callable
+from typing import Union
+
 import pytest
 from outlines import samplers
+from pydantic import BaseModel
 
-from outlines_haystack.generators.utils import SamplingAlgorithm, get_sampler, get_sampling_algorithm
+from outlines_haystack.generators.utils import (
+    SamplingAlgorithm,
+    get_sampler,
+    get_sampling_algorithm,
+    schema_object_to_json_str,
+)
 
 
 @pytest.mark.parametrize("sampling_algo_name", ["multinomial", "greedy", "beam_search"])
@@ -59,3 +68,32 @@ def test_get_sample(sampling_algo: SamplingAlgorithm, expected_sampler: samplers
 def test_get_sampler_error() -> None:
     with pytest.raises(ValueError, match="'test' is not a valid SamplingAlgorithm. Please use one of"):
         get_sampler("test")
+
+
+class MockUser(BaseModel):
+    name: str
+
+
+def mock_func(a: int) -> str:
+    return str(a)
+
+
+@pytest.mark.parametrize(
+    ("schema_object", "expected_str"),
+    [
+        (
+            MockUser,
+            '{"properties": {"name": {"title": "Name", "type": "string"}}, "required": ["name"], "title": "MockUser", "type": "object"}',  # noqa: E501
+        ),
+        (
+            mock_func,
+            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
+        ),
+        (
+            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
+            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
+        ),
+    ],
+)
+def test_schema_object_to_json_str(schema_object: Union[str, type[BaseModel], Callable], expected_str: str) -> None:
+    assert schema_object_to_json_str(schema_object) == expected_str

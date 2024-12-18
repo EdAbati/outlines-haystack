@@ -1,7 +1,11 @@
+import json
+from collections.abc import Callable
 from enum import Enum
 from typing import Any, Union
 
 from outlines import samplers
+from outlines.fsm.json_schema import get_schema_from_signature
+from pydantic import BaseModel
 
 
 class SamplingAlgorithm(str, Enum):
@@ -39,3 +43,16 @@ def get_sampler(sampling_algorithm: SamplingAlgorithm, **kwargs: dict[str, Any])
         f"'{sampling_algorithm}' is not a valid SamplingAlgorithm. Please use one of {SamplingAlgorithm._member_names_}"
     )
     raise ValueError(msg)
+
+
+def schema_object_to_json_str(schema_object: Union[str, type[BaseModel], Callable]) -> str:
+    """Convert a schema object to a JSON string.
+
+    Args:
+        schema_object: The schema object to convert to a JSON string.
+    """
+    if isinstance(schema_object, type(BaseModel)):
+        return json.dumps(schema_object.model_json_schema())
+    if callable(schema_object):
+        return json.dumps(get_schema_from_signature(schema_object))
+    return schema_object
