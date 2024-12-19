@@ -29,8 +29,9 @@ def test_init_different_sampler() -> None:
     assert component.sampling_algorithm_kwargs == {"temperature": 0.5}
 
 
+@mock.patch("outlines_haystack.generators.mlxlm.generate.text", return_value="mock_generator")
 @mock.patch("outlines_haystack.generators.mlxlm.models.mlxlm", return_value="mock_model")
-def test_warm_up(mock_mlxlm: mock.Mock) -> None:
+def test_warm_up(mock_mlxlm: mock.Mock, mock_generator: mock.Mock) -> None:
     component = MLXLMTextGenerator(model_name="mlx-community/fake_model")
     assert component.model is None
     assert component.sampler is None
@@ -44,6 +45,10 @@ def test_warm_up(mock_mlxlm: mock.Mock) -> None:
         model_config={},
         adapter_path=None,
         lazy=False,
+    )
+    mock_generator.assert_called_once_with(
+        "mock_model",
+        mock.ANY,
     )
     assert isinstance(component.sampler, samplers.MultinomialSampler)
 
