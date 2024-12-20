@@ -60,7 +60,14 @@ class _BaseMLXLMGenerator:
     def _warmed_up(self) -> bool:
         return self.model is not None or self.sampler is not None or self.generate_func is not None
 
-    def _warm_up_model_and_sampler(self) -> None:
+    def _warm_up_generate_func(self) -> None:
+        """For performance reasons, we should create the generate function once."""
+        raise NotImplementedError
+
+    def warm_up(self) -> None:
+        """Initializes the component."""
+        if self._warmed_up:
+            return
         self.model = models.mlxlm(
             model_name=self.model_name,
             tokenizer_config=self.tokenizer_config,
@@ -69,15 +76,7 @@ class _BaseMLXLMGenerator:
             lazy=self.lazy,
         )
         self.sampler = get_sampler(self.sampling_algorithm, **self.sampling_algorithm_kwargs)
-
-    def _warm_up_all(self) -> None:
-        raise NotImplementedError
-
-    def warm_up(self) -> None:
-        """Initializes the component."""
-        if self._warmed_up:
-            return
-        self._warm_up_all()
+        self._warm_up_generate_func()
 
     def _check_component_warmed_up(self) -> None:
         if not self._warmed_up:
@@ -111,8 +110,7 @@ class _BaseMLXLMGenerator:
 class MLXLMTextGenerator(_BaseMLXLMGenerator):
     """A component for generating text using an MLXLM model."""
 
-    def _warm_up_all(self) -> None:
-        self._warm_up_model_and_sampler()
+    def _warm_up_generate_func(self) -> None:
         self.generate_func = generate.text(self.model, self.sampler)
 
     @component.output_types(replies=list[str])
@@ -184,8 +182,7 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
         self.schema_object = schema_object_to_json_str(schema_object)
         self.whitespace_pattern = whitespace_pattern
 
-    def _warm_up_all(self) -> None:
-        self._warm_up_model_and_sampler()
+    def _warm_up_generate_func(self) -> None:
         self.generate_func = generate.json(
             self.model,
             schema_object=self.schema_object,
@@ -217,12 +214,12 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
         """
         return default_from_dict(cls, data)
 
-    @component.output_types(structured_replies=list[Any])
+    @component.output_types(structured_replies=list[dict[str, Any]])
     def run(
         self,
         prompt: str,
         max_tokens: Optional[int] = None,
-    ) -> dict[str, list[Any]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         """Run the generation component based on a prompt.
 
         Args:
