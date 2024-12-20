@@ -7,10 +7,12 @@ from outlines import samplers
 from outlines_haystack.generators.transformers import TransformersTextGenerator
 from tests.utils import mock_text_func
 
+MODEL_NAME = "hf_org/some_model"
+
 
 def test_init_default() -> None:
-    component = TransformersTextGenerator(model_name="microsoft/Phi-3-mini-4k-instruct", device="cpu")
-    assert component.model_name == "microsoft/Phi-3-mini-4k-instruct"
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
+    assert component.model_name == MODEL_NAME
     assert component.device == "cpu"
     assert component.model_kwargs == {}
     assert component.tokenizer_kwargs == {}
@@ -20,7 +22,7 @@ def test_init_default() -> None:
 
 def test_init_different_sampler() -> None:
     component = TransformersTextGenerator(
-        model_name="microsoft/Phi-3-mini-4k-instruct",
+        model_name=MODEL_NAME,
         device="cpu",
         sampling_algorithm="multinomial",
         sampling_algorithm_kwargs={"temperature": 0.5},
@@ -31,7 +33,7 @@ def test_init_different_sampler() -> None:
 
 @mock.patch("outlines_haystack.generators.transformers.models.transformers", return_value="mock_model")
 def test_warm_up(mock_mlxlm: mock.Mock) -> None:
-    component = TransformersTextGenerator(model_name="hf_org/fake_model", device="cpu")
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
     assert component.model is None
     assert component.sampler is None
     assert not component._warmed_up
@@ -39,7 +41,7 @@ def test_warm_up(mock_mlxlm: mock.Mock) -> None:
     assert component.model == "mock_model"
     assert component._warmed_up
     mock_mlxlm.assert_called_once_with(
-        model_name="hf_org/fake_model",
+        model_name=MODEL_NAME,
         device="cpu",
         model_kwargs={},
         tokenizer_kwargs={},
@@ -48,7 +50,7 @@ def test_warm_up(mock_mlxlm: mock.Mock) -> None:
 
 
 def test_run_not_warm() -> None:
-    component = TransformersTextGenerator(model_name="microsoft/Phi-3-mini-4k-instruct", device="cpu")
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
     with pytest.raises(
         RuntimeError,
         match="The component TransformersTextGenerator was not warmed up",
@@ -57,11 +59,11 @@ def test_run_not_warm() -> None:
 
 
 def test_to_dict() -> None:
-    component = TransformersTextGenerator(model_name="microsoft/Phi-3-mini-4k-instruct", device="cpu")
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
     expected_dict = {
         "type": "outlines_haystack.generators.transformers.TransformersTextGenerator",
         "init_parameters": {
-            "model_name": "microsoft/Phi-3-mini-4k-instruct",
+            "model_name": MODEL_NAME,
             "device": "cpu",
             "model_kwargs": {},
             "tokenizer_kwargs": {},
@@ -72,16 +74,16 @@ def test_to_dict() -> None:
     assert component.to_dict() == expected_dict
 
 
-def test_from_dict_error() -> None:
+def test_from_dict() -> None:
     component_dict = {
         "type": "outlines_haystack.generators.transformers.TransformersTextGenerator",
         "init_parameters": {
-            "model_name": "microsoft/Phi-3-mini-4k-instruct",
+            "model_name": MODEL_NAME,
             "device": "cpu",
         },
     }
     component = TransformersTextGenerator.from_dict(component_dict)
-    assert component.model_name == "microsoft/Phi-3-mini-4k-instruct"
+    assert component.model_name == MODEL_NAME
     assert component.device == "cpu"
     assert component.model_kwargs == {}
     assert component.tokenizer_kwargs == {}
@@ -90,7 +92,7 @@ def test_from_dict_error() -> None:
 
 
 def test_pipeline() -> None:
-    component = TransformersTextGenerator(model_name="microsoft/Phi-3-mini-4k-instruct", device="cpu")
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
     p = Pipeline()
     p.add_component(instance=component, name="generator")
     p_str = p.dumps()
@@ -99,7 +101,7 @@ def test_pipeline() -> None:
 
 
 def test_run() -> None:
-    component = TransformersTextGenerator(model_name="microsoft/Phi-3-mini-4k-instruct", device="cpu")
+    component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
 
     with (
         mock.patch("outlines_haystack.generators.transformers.generate.text") as mock_generate_text,
