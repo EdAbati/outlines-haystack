@@ -178,4 +178,4 @@ docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "S101", "TID252", "D100", "D101", "D103", "SLF001"]
-"notebooks/*" = ["ERA001"]
+"notebooks/*" = ["ERA001", "D101"]
