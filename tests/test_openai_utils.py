@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 import pytest
 
 from outlines_haystack.generators.openai_utils import set_openai_config

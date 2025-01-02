@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 from typing import Union
 
 from pydantic import BaseModel

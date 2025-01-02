@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 from collections.abc import Callable
 from typing import Union
 

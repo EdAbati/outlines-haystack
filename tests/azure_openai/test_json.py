@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 import os
 from contextlib import nullcontext
 from unittest import mock
