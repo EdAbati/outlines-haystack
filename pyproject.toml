@@ -35,9 +35,9 @@ dependencies = [
   "outlines>=0.1.0",
 ]
 [project.optional-dependencies]
-mlxlm = ["mlx", "mlx-lm<0.19"]
-openai = ["openai"]
-transformers = ["torch", "transformers", "datasets"]
+mlxlm = ["outlines[mlxlm]"]
+openai = ["outlines[openai]"]
+transformers = ["outlines[transformers]"]
 
 [project.urls]
 Documentation = "https://github.com/EdAbati/outlines-haystack#readme"
@@ -177,5 +177,5 @@ convention = "google"
 docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLR2004", "S101", "TID252", "D100", "D103", "SLF001"]
-"notebooks/*" = ["ERA001"]
+"tests/*" = ["PLR2004", "S101", "TID252", "D100", "D101", "D103", "SLF001"]
+"notebooks/*" = ["ERA001", "D101"]

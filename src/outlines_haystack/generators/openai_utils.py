@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 from typing import Any, Union
 
 from outlines.models.openai import OpenAIConfig

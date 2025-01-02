@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 import os
 from contextlib import nullcontext
 from unittest import mock
@@ -9,6 +13,8 @@ from haystack.utils import Secret
 from outlines_haystack.generators.azure_openai import AzureOpenAITextGenerator
 from tests.utils import mock_text_func
 
+MODEL_NAME = "gpt-4o-mini"
+
 
 @mock.patch.dict(
     os.environ,
@@ -19,8 +25,8 @@ from tests.utils import mock_text_func
     },
 )
 def test_init_default() -> None:
-    component = AzureOpenAITextGenerator(model_name="gpt-4o-mini")
-    assert component.model_name == "gpt-4o-mini"
+    component = AzureOpenAITextGenerator(model_name=MODEL_NAME)
+    assert component.model_name == MODEL_NAME
     assert component.azure_endpoint == "test-endpoint"
     assert component.azure_deployment is None
     assert component.api_version is None
@@ -38,7 +44,7 @@ def test_init_default() -> None:
 
 def test_init_params() -> None:
     component = AzureOpenAITextGenerator(
-        model_name="gpt-4o-mini",
+        model_name=MODEL_NAME,
         azure_endpoint="test-endpoint",
         azure_deployment="test-deployment",
         api_version="test-api-version",
@@ -48,7 +54,7 @@ def test_init_params() -> None:
         default_headers={"test-header": "test-value"},
         generation_kwargs={"temperature": 0.5},
     )
-    assert component.model_name == "gpt-4o-mini"
+    assert component.model_name == MODEL_NAME
     assert component.azure_endpoint == "test-endpoint"
     assert component.azure_deployment == "test-deployment"
     assert component.api_version == "test-api-version"
@@ -73,7 +79,7 @@ def test_init_params() -> None:
 )
 def test_init_value_error(mock_os_environ: dict[str, str], expected_error: str) -> None:
     with mock.patch.dict(os.environ, mock_os_environ), pytest.raises(ValueError, match=expected_error):
-        AzureOpenAITextGenerator(model_name="gpt-4o-mini")
+        AzureOpenAITextGenerator(model_name=MODEL_NAME)
 
 
 @mock.patch.dict(
@@ -85,7 +91,7 @@ def test_init_value_error(mock_os_environ: dict[str, str], expected_error: str) 
 )
 def test_to_dict() -> None:
     component = AzureOpenAITextGenerator(
-        model_name="gpt-4o-mini",
+        model_name=MODEL_NAME,
         azure_deployment="test-deployment",
         api_version="test-api-version",
         timeout=60,
@@ -96,7 +102,7 @@ def test_to_dict() -> None:
     assert component.to_dict() == {
         "type": "outlines_haystack.generators.azure_openai.AzureOpenAITextGenerator",
         "init_parameters": {
-            "model_name": "gpt-4o-mini",
+            "model_name": MODEL_NAME,
             "azure_endpoint": "test-endpoint",
             "azure_deployment": "test-deployment",
             "api_version": "test-api-version",
@@ -128,7 +134,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
     component_dict = {
         "type": "outlines_haystack.generators.azure_openai.AzureOpenAITextGenerator",
         "init_parameters": {
-            "model_name": "gpt-4o-mini",
+            "model_name": MODEL_NAME,
             "azure_endpoint": "test-endpoint",
             "azure_deployment": "test-deployment",
             "api_version": "test-api-version",
@@ -148,7 +154,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
         component = AzureOpenAITextGenerator.from_dict(component_dict)
 
         if mock_os_environ:
-            assert component.model_name == "gpt-4o-mini"
+            assert component.model_name == MODEL_NAME
             assert component.azure_endpoint == "test-endpoint"
             assert component.azure_deployment == "test-deployment"
             assert component.api_version == "test-api-version"
@@ -170,7 +176,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
     },
 )
 def test_pipeline() -> None:
-    component = AzureOpenAITextGenerator(model_name="gpt-4o-mini")
+    component = AzureOpenAITextGenerator(model_name=MODEL_NAME)
     p = Pipeline()
     p.add_component(instance=component, name="generator")
     p_str = p.dumps()
@@ -187,7 +193,7 @@ def test_pipeline() -> None:
     },
 )
 def test_run() -> None:
-    component = AzureOpenAITextGenerator(model_name="gpt-4o-mini")
+    component = AzureOpenAITextGenerator(model_name=MODEL_NAME)
 
     with mock.patch("outlines_haystack.generators.azure_openai.generate.text") as mock_generate_text:
         mock_generate_text.return_value = mock_text_func
