@@ -80,7 +80,7 @@ jobs:
       run: >-
         gh release create
         "$GITHUB_REF_NAME"
-         --repo "$GITHUB_REPOSITORY"
+        --repo "$GITHUB_REPOSITORY"
         --notes ""
     - name: Upload artifact signatures to GitHub Release
       env:
