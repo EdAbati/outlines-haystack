@@ -1,7 +1,7 @@
 # `outlines-haystack`
 
 [![PyPI - Version](https://img.shields.io/pypi/v/outlines-haystack.svg)](https://pypi.org/project/outlines-haystack)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/outlines-haystack.svg)](https://pypi.org/project/outlines-haystack)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/outlines-haystack.svg?logo=python&logoColor=white)](https://pypi.org/project/outlines-haystack)
 [![PyPI - License](https://img.shields.io/pypi/l/outlines-haystack)](https://pypi.org/project/outlines-haystack)
 
 
