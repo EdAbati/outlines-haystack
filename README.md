@@ -35,7 +35,7 @@ This library allow you to use [`outlines`](https://dottxt-ai.github.io/outlines/
 
 This library currently supports the following generators:
 - [x] [Text](https://dottxt-ai.github.io/outlines/latest/reference/text/): _simply_ generate text
-- [ ] [JSON](https://dottxt-ai.github.io/outlines/latest/reference/generation/json/): ⚠️ coming soon
+- [x] [JSON](https://dottxt-ai.github.io/outlines/latest/reference/generation/json/): generate a JSON object with a given schema
 - [ ] [Choices](https://dottxt-ai.github.io/outlines/latest/reference/generation/choices/): ⚠️ coming soon
 - [ ] [Regex](https://dottxt-ai.github.io/outlines/latest/reference/generation/regex/): ⚠️ coming soon
 - [ ] [Format](https://dottxt-ai.github.io/outlines/latest/reference/generation/format/): ⚠️ coming soon
@@ -43,7 +43,7 @@ This library currently supports the following generators:
 
 `outlines` supports a wide range of models and frameworks, we are currently supporting:
 - [x] [OpenAI/Azure OpenAI](https://dottxt-ai.github.io/outlines/latest/reference/models/openai/)
-- [x] [Transformers](https://dottxt-ai.github.io/outlines/latest/reference/models/transformers/)
+- [x] [🤗 Transformers](https://dottxt-ai.github.io/outlines/latest/reference/models/transformers/)
 - [x] [`mlx-lm`](https://dottxt-ai.github.io/outlines/latest/reference/models/mlxlm/)
 
 ## 💻 Usage
@@ -52,6 +52,27 @@ This library currently supports the following generators:
 > See the [Example Notebooks](./notebooks) for complete examples.
 >
 > All below examples only use the `transformers` models.
+
+### JSON Generation
+
+```python
+>>> from enum import Enum
+>>> from pydantic import BaseModel
+>>> from outlines_haystack.generators.transformers import TransformersJSONGenerator
+>>> class User(BaseModel):
+...    name: str
+...    last_name: str
+
+>>> generator = TransformersJSONGenerator(
+...     model_name="microsoft/Phi-3-mini-4k-instruct",
+...     schema_object=User,
+...     device="cuda",
+...     sampling_algorithm_kwargs={"temperature": 0.5},
+... )
+>>> generator.warm_up()
+>>> generator.run(prompt="Create a user profile with the fields name, last_name")
+{'structured_replies': [{'name': 'John', 'last_name': 'Doe'}]}
+```
 
 ### Text Generation
 
