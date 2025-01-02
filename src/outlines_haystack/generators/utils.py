@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-present Edoardo Abati
+#
+# SPDX-License-Identifier: MIT
+
 import json
 from collections.abc import Callable
 from enum import Enum
