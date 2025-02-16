@@ -15,6 +15,7 @@ from outlines_haystack.generators.utils import (
     get_sampler,
     get_sampling_algorithm,
     schema_object_to_json_str,
+    validate_choices,
 )
 
 
@@ -206,15 +207,6 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             whitespace_pattern=self.whitespace_pattern,
         )
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
-        """Deserialize this component from a dictionary.
-
-        Args:
-            data: representation of this component.
-        """
-        return default_from_dict(cls, data)
-
     @component.output_types(structured_replies=list[dict[str, Any]])
     def run(
         self,
@@ -234,3 +226,86 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
 
         answer = self.generate_func(prompts=prompt, max_tokens=max_tokens)
         return {"structured_replies": [answer]}
+
+
+@component
+class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
+    """A component that generates a choice between different options using an MLXLM model."""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        model_name: str,
+        choices: list[str],
+        tokenizer_config: Union[dict[str, Any], None] = None,
+        model_config: Union[dict[str, Any], None] = None,
+        adapter_path: Union[str, None] = None,
+        lazy: bool = False,  # noqa: FBT001, FBT002
+        sampling_algorithm: SamplingAlgorithm = SamplingAlgorithm.MULTINOMIAL,
+        sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
+    ) -> None:
+        """Initialize the MLXLM Choice generator component.
+
+        For more info, see https://dottxt-ai.github.io/outlines/latest/reference/models/mlxlm/#load-the-model
+
+        Args:
+            model_name: The path or the huggingface repository to load the model from.
+            choices: The list of choices to choose from.
+            tokenizer_config: Configuration parameters specifically for the tokenizer.
+            If None, defaults to an empty dictionary.
+            model_config: Configuration parameters specifically for the model. If None, defaults to an empty dictionary.
+            adapter_path: Path to the LoRA adapters. If provided, applies LoRA layers to the model. Default: None.
+            lazy: If False eval the model parameters to make sure they are loaded in memory before returning,
+            otherwise they will be loaded when needed. Default: False
+            sampling_algorithm: The sampling algorithm to use. Default: SamplingAlgorithm.MULTINOMIAL
+            sampling_algorithm_kwargs: Additional keyword arguments for the sampling algorithm.
+            See https://dottxt-ai.github.io/outlines/latest/reference/samplers/ for the available parameters.
+            If None, defaults to an empty dictionary.
+        """
+        super(MLXLMChoiceGenerator, self).__init__(  # noqa: UP008
+            model_name=model_name,
+            tokenizer_config=tokenizer_config,
+            model_config=model_config,
+            adapter_path=adapter_path,
+            lazy=lazy,
+            sampling_algorithm=sampling_algorithm,
+            sampling_algorithm_kwargs=sampling_algorithm_kwargs,
+        )
+        validate_choices(choices)
+        self.choices = choices
+
+    def _warm_up_generate_func(self) -> None:
+        self.generate_func = generate.choice(self.model, choices=self.choices, sampler=self.sampler)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this component to a dictionary."""
+        return default_to_dict(
+            self,
+            model_name=self.model_name,
+            choices=self.choices,
+            tokenizer_config=self.tokenizer_config,
+            model_config=self.model_config,
+            adapter_path=self.adapter_path,
+            lazy=self.lazy,
+            sampling_algorithm=self.sampling_algorithm.value,
+            sampling_algorithm_kwargs=self.sampling_algorithm_kwargs,
+        )
+
+    @component.output_types(choice=str)
+    def run(
+        self,
+        prompt: str,
+        max_tokens: Optional[int] = None,
+    ) -> dict[str, list[str]]:
+        """Run the generation component based on a prompt.
+
+        Args:
+            prompt: The prompt to use for generation.
+            max_tokens: The maximum number of tokens to generate.
+        """
+        self._check_component_warmed_up()
+
+        if not prompt:
+            return {"choice": ""}
+
+        choice = self.generate_func(prompts=prompt, max_tokens=max_tokens)
+        return {"choice": choice}

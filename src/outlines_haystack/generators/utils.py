@@ -60,3 +60,10 @@ def schema_object_to_json_str(schema_object: Union[str, type[BaseModel], Callabl
     if callable(schema_object):
         return json.dumps(get_schema_from_signature(schema_object))
     return schema_object
+
+
+def validate_choices(choices: list[str]) -> None:
+    """Validate that choices are a list of str."""
+    if not all(isinstance(choice, str) for choice in choices):
+        msg = "Choices must be a list of strings. Got: {choices}"
+        raise ValueError(msg)
