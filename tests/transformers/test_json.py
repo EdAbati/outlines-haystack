@@ -46,7 +46,7 @@ def test_init_different_sampler() -> None:
 
 @mock.patch("outlines_haystack.generators.transformers.generate.json", return_value="mock_generator")
 @mock.patch("outlines_haystack.generators.transformers.models.transformers", return_value="mock_model")
-def test_warm_up(mock_mlxlm: mock.Mock, mock_generator: mock.Mock) -> None:
+def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
     component = TransformersJSONGenerator(model_name=MODEL_NAME, schema_object=User, device="cpu")
     assert component.model is None
     assert component.sampler is None
@@ -54,7 +54,7 @@ def test_warm_up(mock_mlxlm: mock.Mock, mock_generator: mock.Mock) -> None:
     component.warm_up()
     assert component.model == "mock_model"
     assert component._warmed_up
-    mock_mlxlm.assert_called_once_with(
+    mock_model.assert_called_once_with(
         model_name=MODEL_NAME,
         device="cpu",
         model_kwargs={},

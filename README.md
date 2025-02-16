@@ -35,8 +35,8 @@ This library allow you to use [`outlines`](https://dottxt-ai.github.io/outlines/
 
 This library currently supports the following generators:
 - [x] [JSON](https://dottxt-ai.github.io/outlines/latest/reference/generation/json/): generate a JSON object with a given schema
+- [x] [Choices](https://dottxt-ai.github.io/outlines/latest/reference/generation/choices/): generate text from a list of options. Useful for classification tasks!
 - [x] [Text](https://dottxt-ai.github.io/outlines/latest/reference/text/): _simply_ generate text
-- [ ] [Choices](https://dottxt-ai.github.io/outlines/latest/reference/generation/choices/): ⚠️ coming soon
 - [ ] [Regex](https://dottxt-ai.github.io/outlines/latest/reference/generation/regex/): ⚠️ coming soon
 - [ ] [Format](https://dottxt-ai.github.io/outlines/latest/reference/generation/format/): ⚠️ coming soon
 - [ ] [Grammar](https://dottxt-ai.github.io/outlines/latest/reference/generation/cfg/): ⚠️ coming soon
@@ -78,7 +78,7 @@ This library currently supports the following generators:
 
 > [!TIP]
 > While `outlines` supports classic text generation, it excels at structured generation.
-> For text generation, consider using [Haystack's built-in text generator](https://docs.haystack.deepset.ai/docs/generators) that offer more features.
+> For text generation, consider using [Haystack's built-in text generators](https://docs.haystack.deepset.ai/docs/generators) that offer more features.
 
 ```python
 >>> generator = TransformersTextGenerator(

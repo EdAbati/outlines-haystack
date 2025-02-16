@@ -119,11 +119,11 @@ def test_run() -> None:
     component = MLXLMTextGenerator(model_name=MODEL_NAME)
 
     with (
-        mock.patch("outlines_haystack.generators.mlxlm.generate.text") as mock_generate_text,
+        mock.patch("outlines_haystack.generators.mlxlm.generate.text") as mock_generate,
         mock.patch("outlines_haystack.generators.mlxlm.models.mlxlm") as mock_model_mlxlm,
     ):
         mock_model_mlxlm.return_value = "MockModel"
-        mock_generate_text.return_value = mock_text_func
+        mock_generate.return_value = mock_text_func
         component.warm_up()
         response = component.run("How are you?")
 
