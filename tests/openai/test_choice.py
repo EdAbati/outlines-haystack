@@ -11,10 +11,9 @@ from haystack import Pipeline
 from haystack.utils import Secret
 
 from outlines_haystack.generators.openai import OpenAIChoiceGenerator
-from tests.utils import mock_choice_func
+from tests.utils import CHOICES, mock_choice_func
 
 MODEL_NAME = "gpt-4-mini"
-CHOICES = ["yes", "no", "maybe"]
 
 
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})

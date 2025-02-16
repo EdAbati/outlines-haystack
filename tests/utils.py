@@ -38,6 +38,9 @@ def mock_json_func(
     return '{"name": "John"}'
 
 
+CHOICES = ["yes", "no", "maybe"]
+
+
 def mock_choice_func(
     prompts: Union[str, list[str]],  # noqa: ARG001
     max_tokens: Union[int, None] = None,  # noqa: ARG001

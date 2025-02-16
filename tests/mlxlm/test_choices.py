@@ -9,10 +9,9 @@ from haystack import Pipeline
 from outlines import samplers
 
 from outlines_haystack.generators.mlxlm import MLXLMChoiceGenerator
-from tests.utils import mock_choice_func
+from tests.utils import CHOICES, mock_choice_func
 
 MODEL_NAME = "mlx-community/some_model"
-CHOICES = ["yes", "no", "maybe"]
 
 
 def test_init_default() -> None:
