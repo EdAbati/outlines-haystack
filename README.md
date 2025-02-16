@@ -78,7 +78,7 @@ This library currently supports the following generators:
 
 > [!TIP]
 > While `outlines` supports classic text generation, it excels at structured generation.
-> For text generation, consider using [Haystack's built-in text generator](https://docs.haystack.deepset.ai/docs/generators) that offer more features.
+> For text generation, consider using [Haystack's built-in text generators](https://docs.haystack.deepset.ai/docs/generators) that offer more features.
 
 ```python
 >>> generator = TransformersTextGenerator(
