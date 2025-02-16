@@ -15,6 +15,7 @@ from outlines_haystack.generators.utils import (
     get_sampler,
     get_sampling_algorithm,
     schema_object_to_json_str,
+    validate_choices,
 )
 
 
@@ -144,7 +145,7 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
         sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
         whitespace_pattern: Union[str, None] = None,
     ) -> None:
-        """Initialize the MLXLM JSON generator component.
+        """Initialize the Transformers JSON generator component.
 
         For more info, see https://dottxt-ai.github.io/outlines/latest/reference/models/transformers/
 
@@ -197,15 +198,6 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
             whitespace_pattern=self.whitespace_pattern,
         )
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
-        """Deserialize this component from a dictionary.
-
-        Args:
-            data: representation of this component.
-        """
-        return default_from_dict(cls, data)
-
     @component.output_types(structured_replies=list[dict[str, Any]])
     def run(
         self,
@@ -229,3 +221,87 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
 
         answer = self.generate_func(prompts=prompt, max_tokens=max_tokens, stop_at=stop_at, seed=seed)
         return {"structured_replies": [answer]}
+
+
+@component
+class TransformersChoiceGenerator(_BaseTransformersGenerator):
+    """A component that generates a choice between different options using a Transformers model."""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        model_name: str,
+        choices: list[str],
+        device: Union[str, None] = None,
+        model_kwargs: Union[dict[str, Any], None] = None,
+        tokenizer_kwargs: Union[dict[str, Any], None] = None,
+        sampling_algorithm: SamplingAlgorithm = SamplingAlgorithm.MULTINOMIAL,
+        sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
+    ) -> None:
+        """Initialize the Transformers Choice generator component.
+
+        For more info, see https://dottxt-ai.github.io/outlines/latest/reference/models/transformers/
+
+        Args:
+            model_name: The name of the model as listed on Hugging Face's model page.
+            choices: The list of choices to choose from.
+            device: The device(s) on which the model should be loaded. This overrides the `device_map` entry in
+            `model_kwargs` when provided.
+            model_kwargs: A dictionary that contains the keyword arguments to pass to the `from_pretrained` method
+            when loading the model.
+            tokenizer_kwargs: A dictionary that contains the keyword arguments to pass to the `from_pretrained` method
+            when loading the tokenizer.
+            sampling_algorithm: The sampling algorithm to use. Default: SamplingAlgorithm.MULTINOMIAL
+            sampling_algorithm_kwargs: Additional keyword arguments for the sampling algorithm.
+            See https://dottxt-ai.github.io/outlines/latest/reference/samplers/ for the available parameters.
+            If None, defaults to an empty dictionary.
+        """
+        super(TransformersChoiceGenerator, self).__init__(  # noqa: UP008
+            model_name=model_name,
+            device=device,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs=tokenizer_kwargs,
+            sampling_algorithm=sampling_algorithm,
+            sampling_algorithm_kwargs=sampling_algorithm_kwargs,
+        )
+        validate_choices(choices)
+        self.choices = choices
+
+    def _warm_up_generate_func(self) -> None:
+        self.generate_func = generate.choice(self.model, choices=self.choices, sampler=self.sampler)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this component to a dictionary."""
+        return default_to_dict(
+            self,
+            model_name=self.model_name,
+            choices=self.choices,
+            device=self.device,
+            model_kwargs=self.model_kwargs,
+            tokenizer_kwargs=self.tokenizer_kwargs,
+            sampling_algorithm=self.sampling_algorithm.value,
+            sampling_algorithm_kwargs=self.sampling_algorithm_kwargs,
+        )
+
+    @component.output_types(choice=str)
+    def run(
+        self,
+        prompt: str,
+        max_tokens: Optional[int] = None,
+        stop_at: Optional[Union[str, list[str]]] = None,
+        seed: Optional[int] = None,
+    ) -> dict[str, str]:
+        """Run the generation component based on a prompt.
+
+        Args:
+            prompt: The prompt to use for generation.
+            max_tokens: The maximum number of tokens to generate.
+            stop_at: A string or list of strings after which to stop generation.
+            seed: The seed to use for generation.
+        """
+        self._check_component_warmed_up()
+
+        if not prompt:
+            return {"choice": ""}
+
+        choice = self.generate_func(prompts=prompt, max_tokens=max_tokens, stop_at=stop_at, seed=seed)
+        return {"choice": choice}
