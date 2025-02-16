@@ -140,8 +140,8 @@ def test_pipeline() -> None:
 def test_run() -> None:
     component = OpenAITextGenerator(model_name=MODEL_NAME)
 
-    with mock.patch("outlines_haystack.generators.openai.generate.text") as mock_generate_text:
-        mock_generate_text.return_value = mock_text_func
+    with mock.patch("outlines_haystack.generators.openai.generate.text") as mock_generate:
+        mock_generate.return_value = mock_text_func
         response = component.run("How are you?")
 
     # check that the component returns the correct ChatMessage response

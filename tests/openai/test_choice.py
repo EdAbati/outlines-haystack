@@ -10,15 +10,16 @@ import pytest
 from haystack import Pipeline
 from haystack.utils import Secret
 
-from outlines_haystack.generators.openai import OpenAIJSONGenerator
-from tests.utils import User, mock_json_func, user_schema_str
+from outlines_haystack.generators.openai import OpenAIChoiceGenerator
+from tests.utils import mock_choice_func
 
-MODEL_NAME = "gpt-4o-mini"
+MODEL_NAME = "gpt-4-mini"
+CHOICES = ["yes", "no", "maybe"]
 
 
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_init_default() -> None:
-    component = OpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
+    component = OpenAIChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES)
     assert component.model_name == MODEL_NAME
     assert component.api_key.resolve_value() == "test-api-key"
     assert component.organization is None
@@ -30,13 +31,13 @@ def test_init_default() -> None:
     assert component.default_query is None
     assert component.generation_kwargs == {}
     assert component.openai_config is None
-    assert component.schema_object == user_schema_str
+    assert component.choices == CHOICES
 
 
 def test_init_params() -> None:
-    component = OpenAIJSONGenerator(
+    component = OpenAIChoiceGenerator(
         model_name=MODEL_NAME,
-        schema_object=User,
+        choices=CHOICES,
         api_key=Secret.from_token("test-api-key"),
         timeout=60,
         max_retries=10,
@@ -53,28 +54,28 @@ def test_init_params() -> None:
     assert component.default_query is None
     assert component.generation_kwargs == {"temperature": 0.5}
     assert component.openai_config.temperature == 0.5
-    assert component.schema_object == user_schema_str
+    assert component.choices == CHOICES
 
 
 def test_init_value_error() -> None:
     with pytest.raises(ValueError, match="None of the following authentication environment variables are set"):
-        OpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
+        OpenAIChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES)
 
 
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_to_dict() -> None:
-    component = OpenAIJSONGenerator(
+    component = OpenAIChoiceGenerator(
         model_name=MODEL_NAME,
-        schema_object=User,
+        choices=CHOICES,
         timeout=60,
         max_retries=10,
         default_headers={"test-header": "test-value"},
     )
     assert component.to_dict() == {
-        "type": "outlines_haystack.generators.openai.OpenAIJSONGenerator",
+        "type": "outlines_haystack.generators.openai.OpenAIChoiceGenerator",
         "init_parameters": {
             "model_name": MODEL_NAME,
-            "schema_object": user_schema_str,
+            "choices": CHOICES,
             "api_key": {"type": "env_var", "env_vars": ["OPENAI_API_KEY"], "strict": True},
             "organization": None,
             "project": None,
@@ -99,10 +100,10 @@ def test_to_dict() -> None:
 )
 def test_from_dict(mock_os_environ: dict[str, str]) -> None:
     component_dict = {
-        "type": "outlines_haystack.generators.openai.OpenAIJSONGenerator",
+        "type": "outlines_haystack.generators.openai.OpenAIChoiceGenerator",
         "init_parameters": {
             "model_name": MODEL_NAME,
-            "schema_object": user_schema_str,
+            "choices": CHOICES,
             "api_key": {"type": "env_var", "env_vars": ["OPENAI_API_KEY"], "strict": True},
             "organization": None,
             "project": None,
@@ -121,7 +122,7 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
     )
 
     with mock.patch.dict(os.environ, mock_os_environ), error_context:
-        component = OpenAIJSONGenerator.from_dict(component_dict)
+        component = OpenAIChoiceGenerator.from_dict(component_dict)
 
         if mock_os_environ:
             assert component.model_name == MODEL_NAME
@@ -130,12 +131,12 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             assert component.max_retries == 10
             assert component.default_headers == {"test-header": "test-value"}
             assert component.openai_config.temperature == 0.5
-            assert component.schema_object == user_schema_str
+            assert component.choices == CHOICES
 
 
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_pipeline() -> None:
-    component = OpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
+    component = OpenAIChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES)
     p = Pipeline()
     p.add_component(instance=component, name="generator")
     p_str = p.dumps()
@@ -145,15 +146,12 @@ def test_pipeline() -> None:
 
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_run() -> None:
-    component = OpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
+    component = OpenAIChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES)
 
-    with mock.patch("outlines_haystack.generators.openai.generate.json") as mock_generate:
-        mock_generate.return_value = mock_json_func
-        response = component.run("How are you?")
+    with mock.patch("outlines_haystack.generators.openai.generate.choice") as mock_generate:
+        mock_generate.return_value = mock_choice_func
+        response = component.run("Which option should I choose?")
 
-    # check that the component returns the correct ChatMessage response
     assert isinstance(response, dict)
-    assert "structured_replies" in response
-    assert isinstance(response["structured_replies"], list)
-    assert len(response["structured_replies"]) == 1
-    assert [isinstance(reply, str) for reply in response["structured_replies"]]
+    assert "choice" in response
+    assert response["choice"] == "yes"
