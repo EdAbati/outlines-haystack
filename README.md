@@ -59,6 +59,7 @@ This library currently supports the following generators:
 >>> from enum import Enum
 >>> from pydantic import BaseModel
 >>> from outlines_haystack.generators.transformers import TransformersJSONGenerator
+
 >>> class User(BaseModel):
 ...    name: str
 ...    last_name: str
@@ -74,6 +75,22 @@ This library currently supports the following generators:
 {'structured_replies': [{'name': 'John', 'last_name': 'Doe'}]}
 ```
 
+### Choice Generation
+
+```python
+>>> from outlines_haystack.generators.transformers import TransformersChoiceGenerator
+
+>>> generator = TransformersChoiceGenerator(
+...     model_name="microsoft/Phi-3-mini-4k-instruct",
+...     choices=["Positive", "Negative"],
+...     device="cuda",
+...     sampling_algorithm_kwargs={"temperature": 0.5},
+... )
+>>> generator.warm_up()
+>>> generator.run(prompt="Classify the following statement: 'I love pizza'")
+{'choice': 'Positive'}
+```
+
 ### Text Generation
 
 > [!TIP]
@@ -81,6 +98,8 @@ This library currently supports the following generators:
 > For text generation, consider using [Haystack's built-in text generators](https://docs.haystack.deepset.ai/docs/generators) that offer more features.
 
 ```python
+>>> from outlines_haystack.generators.transformers import TransformersTextGenerator
+
 >>> generator = TransformersTextGenerator(
 ...     model_name="microsoft/Phi-3-mini-4k-instruct",
 ...     device="cuda",
