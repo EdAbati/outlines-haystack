@@ -59,8 +59,8 @@ class _BaseOpenAIGenerator:
 
         # Same defaults as in Haystack
         # https://github.com/deepset-ai/haystack/blob/3ef8c081be460a91f3c5c29899a6ee6bbc429caa/haystack/components/generators/openai.py#L114-L117
-        self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", 30.0))
-        self.max_retries = max_retries or int(os.environ.get("OPENAI_MAX_RETRIES", 5))
+        self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", "30"))
+        self.max_retries = max_retries or int(os.environ.get("OPENAI_MAX_RETRIES", "5"))
 
         self.default_headers = default_headers
         self.default_query = default_query
