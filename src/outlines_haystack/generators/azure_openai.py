@@ -79,8 +79,8 @@ class _BaseAzureOpenAIGenerator:
         self.project = project
 
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L139-L140
-        self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", 30.0))
-        self.max_retries = max_retries or int(os.environ.get("OPENAI_MAX_RETRIES", 5))
+        self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", "30"))
+        self.max_retries = max_retries or int(os.environ.get("OPENAI_MAX_RETRIES", "5"))
 
         self.default_headers = default_headers
         self.default_query = default_query
