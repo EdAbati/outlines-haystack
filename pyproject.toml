@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
   "haystack-ai>=2.5.0",
-  "outlines>=0.1.0",
+  "outlines~=0.1.0",
 ]
 [project.optional-dependencies]
 mlxlm = ["outlines[mlxlm]"]
