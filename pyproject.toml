@@ -68,6 +68,7 @@ dependencies = [
   "pytest",
 ]
 features = ["openai", "transformers"]
+post-install-commands = ["echo 'uv pip freeze'", "uv pip freeze"]
 
 [tool.hatch.envs.hatch-test.overrides]
 platform.macos.features = ["mlxlm", "openai", "transformers"]
