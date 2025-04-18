@@ -137,7 +137,7 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
-        schema_object: Union[str, BaseModel, Callable],
+        schema_object: Union[str, type[BaseModel], Callable],
         device: Union[str, None] = None,
         model_kwargs: Union[dict[str, Any], None] = None,
         tokenizer_kwargs: Union[dict[str, Any], None] = None,
