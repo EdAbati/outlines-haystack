@@ -69,7 +69,7 @@ class _BaseLlamaCppGenerator:
         if self._warmed_up:
             return
         self.model = models.llamacpp(
-            repo_id=self.model_name,
+            repo_id=self.repo_id,
             filename=self.file_name,
             **self.model_kwargs,
         )
