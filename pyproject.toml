@@ -145,7 +145,6 @@ lint-fix = "ruff check --fix {args:.}"
 [tool.black]
 target-version = ["py39"]
 line-length = 120
-skip-string-normalization = true
 
 [tool.ruff]
 target-version = "py39"
