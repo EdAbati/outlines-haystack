@@ -44,6 +44,7 @@ This library currently supports the following generators:
 `outlines` supports a wide range of models and frameworks, we are currently supporting:
 - [x] [OpenAI/Azure OpenAI](https://dottxt-ai.github.io/outlines/latest/reference/models/openai/)
 - [x] [🤗 Transformers](https://dottxt-ai.github.io/outlines/latest/reference/models/transformers/)
+- [x] [`llama-cpp`](https://dottxt-ai.github.io/outlines/latest/reference/models/llamacpp/)
 - [x] [`mlx-lm`](https://dottxt-ai.github.io/outlines/latest/reference/models/mlxlm/)
 
 ## 💻 Usage

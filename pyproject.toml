@@ -38,6 +38,7 @@ dependencies = [
 mlxlm = ["outlines[mlxlm]"]
 openai = ["outlines[openai]"]
 transformers = ["outlines[transformers]"]
+llama-cpp = ["outlines[llamacpp]"]
 
 [project.urls]
 Documentation = "https://github.com/EdAbati/outlines-haystack#readme"
@@ -55,10 +56,10 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
 ]
-features = ["openai", "transformers"]
+features = ["llama-cpp", "openai", "transformers"]
 
 [tool.hatch.envs.default.overrides]
-platform.macos.features = ["mlxlm", "openai", "transformers"]
+platform.macos.features = ["llama-cpp", "mlxlm", "openai", "transformers"]
 
 # Unit tests
 [tool.hatch.envs.hatch-test]
@@ -71,7 +72,7 @@ features = ["openai", "transformers"]
 post-install-commands = ["uv pip freeze"]
 
 [tool.hatch.envs.hatch-test.overrides]
-platform.macos.features = ["mlxlm", "openai", "transformers"]
+platform.macos.features = ["llama-cpp", "mlxlm", "openai", "transformers"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.12", "3.11", "3.10", "3.9"]
