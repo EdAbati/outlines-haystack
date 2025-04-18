@@ -121,7 +121,7 @@ extra-dependencies = [
 ]
 
 [tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/outlines_haystack tests}"
+check = "mypy {args:src/outlines_haystack tests}"
 
 
 # Linting

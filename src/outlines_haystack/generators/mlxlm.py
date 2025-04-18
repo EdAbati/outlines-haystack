@@ -143,7 +143,7 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
-        schema_object: Union[str, BaseModel, Callable],
+        schema_object: Union[str, type[BaseModel], Callable],
         tokenizer_config: Union[dict[str, Any], None] = None,
         model_config: Union[dict[str, Any], None] = None,
         adapter_path: Union[str, None] = None,
