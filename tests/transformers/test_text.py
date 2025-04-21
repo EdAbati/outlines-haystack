@@ -121,4 +121,4 @@ def test_run() -> None:
     assert "replies" in response
     assert isinstance(response["replies"], list)
     assert len(response["replies"]) == 1
-    assert [isinstance(reply, str) for reply in response["replies"]]
+    assert all(isinstance(reply, str) for reply in response["replies"])
