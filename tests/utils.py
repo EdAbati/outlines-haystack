@@ -34,8 +34,8 @@ def mock_json_func(
     stop_at: Union[str, list[str], None] = None,  # noqa: ARG001
     seed: Union[int, None] = None,  # noqa: ARG001
     **model_specific_params,  # noqa: ANN003, ARG001
-) -> str:
-    return '{"name": "John"}'
+) -> dict[str, str]:
+    return {"name": "John"}
 
 
 CHOICES = ["yes", "no", "maybe"]
