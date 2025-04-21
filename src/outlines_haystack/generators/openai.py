@@ -4,7 +4,7 @@
 
 import os
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
@@ -110,9 +110,9 @@ class OpenAITextGenerator(_BaseOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
@@ -208,9 +208,9 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """Run the generation component based on a prompt.
 
@@ -307,10 +307,10 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
-    ) -> dict[str, list[dict[str, Any]]]:
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
+    ) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
         Args:

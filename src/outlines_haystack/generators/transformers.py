@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 from collections.abc import Callable
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from haystack import component, default_from_dict, default_to_dict
 from outlines import generate, models
@@ -109,9 +109,9 @@ class TransformersTextGenerator(_BaseTransformersGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
@@ -202,9 +202,9 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """Run the generation component based on a prompt.
 
@@ -286,9 +286,9 @@ class TransformersChoiceGenerator(_BaseTransformersGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
