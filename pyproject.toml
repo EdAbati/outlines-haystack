@@ -7,7 +7,7 @@ name = "outlines-haystack"
 dynamic = ["version"]
 description = 'Use `outlines` generators with Haystack.'
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.10,<3.13"
 keywords = [
   "nlp",
   "machine-learning",
@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
   "haystack-ai>=2.5.0",
-  "outlines~=0.1.0",
+  "outlines>=0.2.0",
 ]
 [project.optional-dependencies]
 mlxlm = ["outlines[mlxlm]"]
@@ -143,11 +143,11 @@ lint-fix = "ruff check --fix {args:.}"
 
 # Format/Linting Tools
 [tool.black]
-target-version = ["py39"]
+target-version = ["py310"]
 line-length = 120
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 120
 extend-include = ["*.ipynb"]
 
@@ -163,6 +163,9 @@ ignore = [
   "S105",
   "S106",
   "S107",
+  # Haystack doesn't support | for Union types
+  "UP007",
+
 ]
 
 [tool.ruff.lint.isort]

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 from collections.abc import Callable
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from haystack import component, default_from_dict, default_to_dict
 from outlines import generate, models
@@ -119,7 +119,7 @@ class MLXLMTextGenerator(_BaseMLXLMGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
     ) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
@@ -211,7 +211,7 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """Run the generation component based on a prompt.
 
@@ -294,8 +294,8 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-    ) -> dict[str, list[str]]:
+        max_tokens: Union[int, None] = None,
+    ) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
         Args:

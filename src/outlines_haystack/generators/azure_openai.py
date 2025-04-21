@@ -4,7 +4,7 @@
 
 import os
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
@@ -20,15 +20,15 @@ class _BaseAzureOpenAIGenerator:
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
-        azure_endpoint: Optional[str] = None,
-        azure_deployment: Optional[str] = None,
-        api_version: Optional[str] = None,
+        azure_endpoint: Union[str, None] = None,
+        azure_deployment: Union[str, None] = None,
+        api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
-        organization: Optional[str] = None,
-        project: Optional[str] = None,
-        timeout: Optional[int] = None,
-        max_retries: Optional[int] = None,
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
         generation_kwargs: Union[dict[str, Any], None] = None,
@@ -136,9 +136,9 @@ class AzureOpenAITextGenerator(_BaseAzureOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
@@ -167,15 +167,15 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
         self,
         model_name: str,
         schema_object: Union[str, type[BaseModel]],
-        azure_endpoint: Optional[str] = None,
-        azure_deployment: Optional[str] = None,
-        api_version: Optional[str] = None,
+        azure_endpoint: Union[str, None] = None,
+        azure_deployment: Union[str, None] = None,
+        api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
-        organization: Optional[str] = None,
-        project: Optional[str] = None,
-        timeout: Optional[int] = None,
-        max_retries: Optional[int] = None,
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
         generation_kwargs: Union[dict[str, Any], None] = None,
@@ -247,9 +247,9 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, list[dict[str, Any]]]:
         """Run the generation component based on a prompt.
 
@@ -278,15 +278,15 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
         self,
         model_name: str,
         choices: list[str],
-        azure_endpoint: Optional[str] = None,
-        azure_deployment: Optional[str] = None,
-        api_version: Optional[str] = None,
+        azure_endpoint: Union[str, None] = None,
+        azure_deployment: Union[str, None] = None,
+        api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
-        organization: Optional[str] = None,
-        project: Optional[str] = None,
-        timeout: Optional[int] = None,
-        max_retries: Optional[int] = None,
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
         generation_kwargs: Union[dict[str, Any], None] = None,
@@ -359,9 +359,9 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
     def run(
         self,
         prompt: str,
-        max_tokens: Optional[int] = None,
-        stop_at: Optional[Union[str, list[str]]] = None,
-        seed: Optional[int] = None,
+        max_tokens: Union[int, None] = None,
+        stop_at: Union[str, list[str], None] = None,
+        seed: Union[int, None] = None,
     ) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
