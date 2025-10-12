@@ -1,9 +1,9 @@
 name: 📢 Publish to PyPI and TestPyPI
 
 on:
-    push:
-      tags:
-        - "[0-9]+.[0-9]+.[0-9]+*"
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
   build:
@@ -11,84 +11,82 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
-      with:
-        persist-credentials: false
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.9"
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.9"
 
-    - name: Install Hatch
-      run: pip install --upgrade hatch
+      - name: Install Hatch
+        run: pip install --upgrade hatch
 
-    - name: Build a binary wheel and a source tarball
-      run: hatch build
+      - name: Build a binary wheel and a source tarball
+        run: hatch build
 
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
   publish-to-pypi:
     name: 🚀 Publish to PyPI
     needs:
-    - build
+      - build
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/outlines-haystack/
     permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
+      id-token: write # IMPORTANT: mandatory for trusted publishing
 
     steps:
-    - name: Download `dist` from the artifacts
-      uses: actions/download-artifact@v5
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Publish the distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-
+      - name: Download `dist` from the artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish the distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   github-release:
     name: 📝 Sign the distribution with Sigstore and upload to GitHub Release
     needs:
-    - publish-to-pypi
+      - publish-to-pypi
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # IMPORTANT: mandatory for making GitHub Releases
-      id-token: write  # IMPORTANT: mandatory for sigstore
+      contents: write # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write # IMPORTANT: mandatory for sigstore
 
     steps:
-    - name: Download `dist` from the artifacts
-      uses: actions/download-artifact@v5
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Sign the dists with Sigstore
-      uses: sigstore/gh-action-sigstore-python@v3.0.0
-      with:
-        inputs: >-
-          ./dist/*.tar.gz
-          ./dist/*.whl
-    - name: Create GitHub Release
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: >-
-        gh release create
-        "$GITHUB_REF_NAME"
-        --repo "$GITHUB_REPOSITORY"
-        --notes ""
-    - name: Upload artifact signatures to GitHub Release
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      # Upload to GitHub Release using the `gh` CLI.
-      # `dist/` contains the built packages, and the
-      # sigstore-produced signatures and certificates.
-      run: >-
-        gh release upload
-        "$GITHUB_REF_NAME" dist/**
-        --repo "$GITHUB_REPOSITORY"
+      - name: Download `dist` from the artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.1
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create
+          "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --notes ""
+      - name: Upload artifact signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Upload to GitHub Release using the `gh` CLI.
+        # `dist/` contains the built packages, and the
+        # sigstore-produced signatures and certificates.
+        run: >-
+          gh release upload
+          "$GITHUB_REF_NAME" dist/**
+          --repo "$GITHUB_REPOSITORY"
