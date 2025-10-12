@@ -44,7 +44,7 @@ def test_get_sampling_algorithm(sampling_algo: SamplingAlgorithm, expected_sampl
 
 
 def test_get_sampling_algorithm_error() -> None:
-    with pytest.raises(ValueError, match="'test' is not a valid SamplingAlgorithm. Please use one of"):
+    with pytest.raises(ValueError, match=r"'test' is not a valid SamplingAlgorithm. Please use one of"):
         get_sampling_algorithm("test")
 
 
@@ -70,7 +70,7 @@ def test_get_sample(sampling_algo: SamplingAlgorithm, expected_sampler: samplers
 
 
 def test_get_sampler_error() -> None:
-    with pytest.raises(ValueError, match="'test' is not a valid SamplingAlgorithm. Please use one of"):
+    with pytest.raises(ValueError, match=r"'test' is not a valid SamplingAlgorithm. Please use one of"):
         get_sampler("test")
 
 
