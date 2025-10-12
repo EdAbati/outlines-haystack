@@ -45,9 +45,9 @@ jobs:
       # - name: Run mypy types checking
       #   run: hatch run types:check
 
-      - name: Disable Metal for llama-cpp-python on macOS
+      - name: Disable i8mm for llama-cpp-python on macOS
         if: startsWith(matrix.os, 'macos-')
-        run: echo "GGML_METAL=OFF" >> $GITHUB_ENV
+        run: echo "GGML_I8MM=OFF" >> $GITHUB_ENV
         shell: bash
 
       - name: Run unit tests
