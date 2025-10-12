@@ -3,9 +3,6 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/outlines-haystack.svg)](https://pypi.org/project/outlines-haystack)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/outlines-haystack.svg?logo=python&logoColor=white)](https://pypi.org/project/outlines-haystack)
 [![PyPI - License](https://img.shields.io/pypi/l/outlines-haystack)](https://pypi.org/project/outlines-haystack)
-
-
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 [![GH Actions Tests](https://github.com/EdAbati/outlines-haystack/actions/workflows/test.yml/badge.svg)](https://github.com/EdAbati/outlines-haystack/actions/workflows/test.yml)
