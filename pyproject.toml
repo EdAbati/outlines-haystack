@@ -140,26 +140,16 @@ check = "mypy {args:src/outlines_haystack tests}"
 
 # Linting
 [tool.hatch.envs.hatch-static-analysis]
-dependencies = ["black>=24.10.0", "nbqa>=1.9.1", "ruff>=0.8.0"]
+dependencies = ["ruff>=0.8.0"]
 
 [tool.hatch.envs.hatch-static-analysis.scripts]
-format-check = [
-  "black --check --diff {args:.}",
-  "nbqa black --check --diff notebooks/*",
-]
-format-fix = [
-  "black {args:.}",
-  "nbqa black notebooks/*",
-]
+format-check = "ruff format --check --diff {args:.}"
+format-fix = "ruff format {args:.}"
 lint-check = "ruff check {args:.}"
 lint-fix = "ruff check --fix {args:.}"
 
 
 # Format/Linting Tools
-[tool.black]
-target-version = ["py310"]
-line-length = 120
-
 [tool.ruff]
 target-version = "py310"
 line-length = 120
@@ -168,6 +158,8 @@ extend-include = ["*.ipynb"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+  # Missing trailing comma (conflict with ruff-format)
+  "COM812",
   # No required doctstring for modules, packages
   "D100",
   "D104",
@@ -179,7 +171,6 @@ ignore = [
   "S107",
   # Haystack doesn't support | for Union types
   "UP007",
-
 ]
 
 [tool.ruff.lint.isort]
