@@ -13,7 +13,10 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from outlines_haystack.generators.openai_utils import set_openai_config
-from outlines_haystack.generators.utils import schema_object_to_json_str, validate_choices
+from outlines_haystack.generators.utils import (
+    schema_object_to_json_str,
+    validate_choices,
+)
 
 
 class _BaseAzureOpenAIGenerator:
@@ -23,8 +26,8 @@ class _BaseAzureOpenAIGenerator:
         azure_endpoint: Union[str, None] = None,
         azure_deployment: Union[str, None] = None,
         api_version: Union[str, None] = None,
-        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
-        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),
+        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),
         organization: Union[str, None] = None,
         project: Union[str, None] = None,
         timeout: Union[int, None] = None,
@@ -170,8 +173,8 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
         azure_endpoint: Union[str, None] = None,
         azure_deployment: Union[str, None] = None,
         api_version: Union[str, None] = None,
-        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
-        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),
+        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),
         organization: Union[str, None] = None,
         project: Union[str, None] = None,
         timeout: Union[int, None] = None,
@@ -281,8 +284,8 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
         azure_endpoint: Union[str, None] = None,
         azure_deployment: Union[str, None] = None,
         api_version: Union[str, None] = None,
-        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
-        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),
+        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),
         organization: Union[str, None] = None,
         project: Union[str, None] = None,
         timeout: Union[int, None] = None,

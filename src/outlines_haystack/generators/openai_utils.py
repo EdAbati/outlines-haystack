@@ -7,7 +7,9 @@ from typing import Any, Union
 from outlines.models.openai import OpenAIConfig
 
 
-def set_openai_config(generation_kwargs: Union[dict[str, Any], None] = None) -> Union[OpenAIConfig, None]:
+def set_openai_config(
+    generation_kwargs: Union[dict[str, Any], None] = None,
+) -> Union[OpenAIConfig, None]:
     """Set the OpenAIConfig from the generation_kwargs."""
     if generation_kwargs is None:
         return None

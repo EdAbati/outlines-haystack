@@ -88,7 +88,10 @@ def test_to_dict() -> None:
         "init_parameters": {
             "model_name": MODEL_NAME,
             "schema_object": user_schema_str,
-            "tokenizer_config": {"eos_token": "<|endoftext|>", "trust_remote_code": True},
+            "tokenizer_config": {
+                "eos_token": "<|endoftext|>",
+                "trust_remote_code": True,
+            },
             "model_config": {},
             "adapter_path": None,
             "lazy": False,
@@ -106,14 +109,20 @@ def test_from_dict() -> None:
         "init_parameters": {
             "model_name": MODEL_NAME,
             "schema_object": user_schema_str,
-            "tokenizer_config": {"eos_token": "<|endoftext|>", "trust_remote_code": True},
+            "tokenizer_config": {
+                "eos_token": "<|endoftext|>",
+                "trust_remote_code": True,
+            },
             "whitespace_pattern": r"[\n\t ]*",
         },
     }
     component = MLXLMJSONGenerator.from_dict(component_dict)
     assert component.model_name == MODEL_NAME
     assert component.schema_object == user_schema_str
-    assert component.tokenizer_config == {"eos_token": "<|endoftext|>", "trust_remote_code": True}
+    assert component.tokenizer_config == {
+        "eos_token": "<|endoftext|>",
+        "trust_remote_code": True,
+    }
     assert component.model_config == {}
     assert component.adapter_path is None
     assert not component.lazy

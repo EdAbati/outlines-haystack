@@ -41,8 +41,14 @@ def test_init_different_sampler() -> None:
     assert component.sampling_algorithm_kwargs == {"temperature": 0.5}
 
 
-@mock.patch("outlines_haystack.generators.transformers.generate.choice", return_value="mock_generator")
-@mock.patch("outlines_haystack.generators.transformers.models.transformers", return_value="mock_model")
+@mock.patch(
+    "outlines_haystack.generators.transformers.generate.choice",
+    return_value="mock_generator",
+)
+@mock.patch(
+    "outlines_haystack.generators.transformers.models.transformers",
+    return_value="mock_model",
+)
 def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
     component = TransformersChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES, device="cpu")
     assert component.model is None

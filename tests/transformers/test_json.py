@@ -44,8 +44,14 @@ def test_init_different_sampler() -> None:
     assert component.whitespace_pattern == r"[\n\t ]*"
 
 
-@mock.patch("outlines_haystack.generators.transformers.generate.json", return_value="mock_generator")
-@mock.patch("outlines_haystack.generators.transformers.models.transformers", return_value="mock_model")
+@mock.patch(
+    "outlines_haystack.generators.transformers.generate.json",
+    return_value="mock_generator",
+)
+@mock.patch(
+    "outlines_haystack.generators.transformers.models.transformers",
+    return_value="mock_model",
+)
 def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
     component = TransformersJSONGenerator(model_name=MODEL_NAME, schema_object=User, device="cpu")
     assert component.model is None

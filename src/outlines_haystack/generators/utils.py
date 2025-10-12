@@ -23,7 +23,9 @@ class SamplingAlgorithm(str, Enum):
     BEAM_SEARCH = "beam_search"
 
 
-def get_sampling_algorithm(sampling_algorithm: Union[str, SamplingAlgorithm]) -> SamplingAlgorithm:
+def get_sampling_algorithm(
+    sampling_algorithm: Union[str, SamplingAlgorithm],
+) -> SamplingAlgorithm:
     """Get the sampling algorithm."""
     try:
         return SamplingAlgorithm(sampling_algorithm)
@@ -49,7 +51,9 @@ def get_sampler(sampling_algorithm: SamplingAlgorithm, **kwargs: dict[str, Any])
     raise ValueError(msg)
 
 
-def schema_object_to_json_str(schema_object: Union[str, type[BaseModel], Callable]) -> str:
+def schema_object_to_json_str(
+    schema_object: Union[str, type[BaseModel], Callable],
+) -> str:
     """Convert a schema object to a JSON string.
 
     Args:

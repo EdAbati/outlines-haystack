@@ -77,11 +77,17 @@ def test_init_params() -> None:
     ("mock_os_environ", "expected_error"),
     [
         ({}, "Please provide an Azure endpoint"),
-        ({"AZURE_OPENAI_ENDPOINT": "test-endpoint"}, "Please provide an API key or an Azure Active Directory token"),
+        (
+            {"AZURE_OPENAI_ENDPOINT": "test-endpoint"},
+            "Please provide an API key or an Azure Active Directory token",
+        ),
     ],
 )
 def test_init_value_error(mock_os_environ: dict[str, str], expected_error: str) -> None:
-    with mock.patch.dict(os.environ, mock_os_environ), pytest.raises(ValueError, match=expected_error):
+    with (
+        mock.patch.dict(os.environ, mock_os_environ),
+        pytest.raises(ValueError, match=expected_error),
+    ):
         AzureOpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
 
 
@@ -111,8 +117,16 @@ def test_to_dict() -> None:
             "azure_endpoint": "test-endpoint",
             "azure_deployment": "test-deployment",
             "api_version": "test-api-version",
-            "api_key": {"type": "env_var", "env_vars": ["AZURE_OPENAI_API_KEY"], "strict": False},
-            "azure_ad_token": {"type": "env_var", "env_vars": ["AZURE_OPENAI_AD_TOKEN"], "strict": False},
+            "api_key": {
+                "type": "env_var",
+                "env_vars": ["AZURE_OPENAI_API_KEY"],
+                "strict": False,
+            },
+            "azure_ad_token": {
+                "type": "env_var",
+                "env_vars": ["AZURE_OPENAI_AD_TOKEN"],
+                "strict": False,
+            },
             "organization": None,
             "project": None,
             "timeout": 60,
@@ -144,8 +158,16 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             "azure_endpoint": "test-endpoint",
             "azure_deployment": "test-deployment",
             "api_version": "test-api-version",
-            "api_key": {"type": "env_var", "env_vars": ["AZURE_OPENAI_API_KEY"], "strict": False},
-            "azure_ad_token": {"type": "env_var", "env_vars": ["AZURE_OPENAI_AD_TOKEN"], "strict": False},
+            "api_key": {
+                "type": "env_var",
+                "env_vars": ["AZURE_OPENAI_API_KEY"],
+                "strict": False,
+            },
+            "azure_ad_token": {
+                "type": "env_var",
+                "env_vars": ["AZURE_OPENAI_AD_TOKEN"],
+                "strict": False,
+            },
             "timeout": 60,
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},

@@ -57,7 +57,10 @@ def test_init_params() -> None:
 
 
 def test_init_value_error() -> None:
-    with pytest.raises(ValueError, match="None of the following authentication environment variables are set"):
+    with pytest.raises(
+        ValueError,
+        match="None of the following authentication environment variables are set",
+    ):
         OpenAIJSONGenerator(model_name=MODEL_NAME, schema_object=User)
 
 
@@ -75,7 +78,11 @@ def test_to_dict() -> None:
         "init_parameters": {
             "model_name": MODEL_NAME,
             "schema_object": user_schema_str,
-            "api_key": {"type": "env_var", "env_vars": ["OPENAI_API_KEY"], "strict": True},
+            "api_key": {
+                "type": "env_var",
+                "env_vars": ["OPENAI_API_KEY"],
+                "strict": True,
+            },
             "organization": None,
             "project": None,
             "base_url": None,
@@ -103,7 +110,11 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
         "init_parameters": {
             "model_name": MODEL_NAME,
             "schema_object": user_schema_str,
-            "api_key": {"type": "env_var", "env_vars": ["OPENAI_API_KEY"], "strict": True},
+            "api_key": {
+                "type": "env_var",
+                "env_vars": ["OPENAI_API_KEY"],
+                "strict": True,
+            },
             "organization": None,
             "project": None,
             "base_url": None,
@@ -115,7 +126,10 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
         },
     }
     error_context = (
-        pytest.raises(ValueError, match="None of the following authentication environment variables are set")
+        pytest.raises(
+            ValueError,
+            match="None of the following authentication environment variables are set",
+        )
         if not mock_os_environ
         else nullcontext()
     )

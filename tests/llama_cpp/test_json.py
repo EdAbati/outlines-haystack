@@ -51,7 +51,10 @@ def test_init_different_sampler() -> None:
     assert component.whitespace_pattern == r"\s+"
 
 
-@mock.patch("outlines_haystack.generators.transformers.generate.json", return_value="mock_generator")
+@mock.patch(
+    "outlines_haystack.generators.transformers.generate.json",
+    return_value="mock_generator",
+)
 @mock.patch("outlines_haystack.generators.llama_cpp.models.llamacpp", return_value="mock_model")
 def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
