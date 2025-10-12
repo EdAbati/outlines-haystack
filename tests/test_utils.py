@@ -51,11 +51,7 @@ def test_get_sampling_algorithm_error() -> None:
 @pytest.mark.parametrize(
     ("sampling_algo", "expected_sampler", "sampler_kwargs"),
     [
-        (
-            SamplingAlgorithm.MULTINOMIAL,
-            samplers.MultinomialSampler,
-            {"temperature": 0.5},
-        ),
+        (SamplingAlgorithm.MULTINOMIAL, samplers.MultinomialSampler, {"temperature": 0.5}),
         (SamplingAlgorithm.GREEDY, samplers.GreedySampler, {}),
         (SamplingAlgorithm.BEAM_SEARCH, samplers.BeamSearchSampler, {"beams": 5}),
         ("multinomial", samplers.MultinomialSampler, {"temperature": 0.5}),
@@ -63,11 +59,7 @@ def test_get_sampling_algorithm_error() -> None:
         ("beam_search", samplers.BeamSearchSampler, {"beams": 5}),
     ],
 )
-def test_get_sample(
-    sampling_algo: SamplingAlgorithm,
-    expected_sampler: samplers.Sampler,
-    sampler_kwargs: dict,
-) -> None:
+def test_get_sample(sampling_algo: SamplingAlgorithm, expected_sampler: samplers.Sampler, sampler_kwargs: dict) -> None:
     sampler = get_sampler(sampling_algo, **sampler_kwargs)
     assert isinstance(sampler, expected_sampler)
     for key, value in sampler_kwargs.items():

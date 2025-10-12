@@ -13,10 +13,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from outlines_haystack.generators.openai_utils import set_openai_config
-from outlines_haystack.generators.utils import (
-    schema_object_to_json_str,
-    validate_choices,
-)
+from outlines_haystack.generators.utils import schema_object_to_json_str, validate_choices
 
 
 class _BaseOpenAIGenerator:

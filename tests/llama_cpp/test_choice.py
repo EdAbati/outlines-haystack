@@ -45,10 +45,7 @@ def test_init_different_sampler() -> None:
     assert component.generation_kwargs == {"max_tokens": 100}
 
 
-@mock.patch(
-    "outlines_haystack.generators.llama_cpp.generate.choice",
-    return_value="mock_generator",
-)
+@mock.patch("outlines_haystack.generators.llama_cpp.generate.choice", return_value="mock_generator")
 @mock.patch("outlines_haystack.generators.llama_cpp.models.llamacpp", return_value="mock_model")
 def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
     component = LlamaCppChoiceGenerator(repo_id=REPO_ID, file_name=FILE_NAME, choices=CHOICES)
