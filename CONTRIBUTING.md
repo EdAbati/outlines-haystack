@@ -6,18 +6,18 @@ Feel free to [open an issue](https://github.com/EdAbati/outlines-haystack/issues
 
 ### Setup development environment
 
-Requirements: [`hatch`](https://hatch.pypa.io/latest/install/), [`pre-commit`](https://pre-commit.com/#install)
+Requirements: [`uv`](https://docs.astral.sh/uv/), [`pre-commit`](https://pre-commit.com/#install)
 
 1. Clone the repository
-1. Run `hatch shell` to create and activate a virtual environment
+1. Run `uv venv` to create and `source .venv/bin/activate` to activate a virtual environment
 1. Run `pre-commit install` to install the pre-commit hooks. This will force the linting and formatting checks.
 
 ### Run tests
 
-We use `hatch` to run:
+We use `uv run` to run:
 
-- [Linting and formatting checks](https://hatch.pypa.io/dev/community/contributing/#lint): `hatch fmt`
-- [Unit tests](https://hatch.pypa.io/dev/tutorials/testing/overview/)
-    - Run tests (with the default python version): `hatch test`
-    - Run tests with coverage: `hatch test --cov`
-    - Run tests with all supported python versions: `hatch test --all`
+- Linting and formatting checks: `uv run task fmt`
+- Unit tests:
+    - Run tests (with the default python version): `uv run task test`
+    - Run tests with coverage: `uv run task test-cov`
+    - Run tests with a specific python versions: `uv run --python <version> task test`
