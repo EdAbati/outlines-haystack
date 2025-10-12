@@ -32,13 +32,15 @@ classifiers = [
 ]
 dependencies = [
   "haystack-ai>=2.5.0",
-  "outlines>=0.2.0",
+  "outlines>=0.2.0,<1.0.0",
 ]
 [project.optional-dependencies]
 mlxlm = ["outlines[mlxlm]"]
 openai = ["outlines[openai]"]
 transformers = ["outlines[transformers]"]
-llama-cpp = ["outlines[llamacpp]"]
+# We include llama-cpp-python as a dependency here to ensure that it is installed
+# from the custom index defined below on macOS, where building from source might fail.
+llama-cpp = ["outlines[llamacpp]", "llama-cpp-python"]
 
 [project.urls]
 Documentation = "https://github.com/EdAbati/outlines-haystack#readme"
@@ -47,6 +49,18 @@ Source = "https://github.com/EdAbati/outlines-haystack"
 
 [tool.hatch.version]
 path = "src/outlines_haystack/__about__.py"
+
+# Copied from : https://github.com/deepset-ai/haystack-core-integrations/blob/main/integrations/llama_cpp/pyproject.toml#L31C1-L37C62
+# On macOS GitHub runners, we use a custom index to download pre-built wheels.
+# Installing from source might fail due to missing dependencies (CMake fails with "OpenMP not found")
+[tool.uv.sources]
+llama-cpp-python = [
+  { index = "llama-cpp-python-macos", marker = "sys_platform == 'darwin'" },
+]
+[[tool.uv.index]]
+name = "llama-cpp-python-macos"
+url = "https://abetlen.github.io/llama-cpp-python/whl/metal/"
+explicit = true
 
 
 # Default environment
