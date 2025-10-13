@@ -75,6 +75,7 @@ typing = [
   "mypy>=1.0.0",
 ]
 dev = [
+  "notebook",
   "poethepoet",
   "pre-commit",
   { include-group = "testing" },
