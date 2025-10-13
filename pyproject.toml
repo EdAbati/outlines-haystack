@@ -153,6 +153,9 @@ docstring-code-format = true
 "notebooks/*" = ["ERA001", "D101"]
 
 # Tasks
+[tool.poe]
+executor.type = "uv"
+
 [tool.poe.tasks]
 test = { cmd = "pytest", help = "Runs all unit tests" }
 test-cov = { cmd = "coverage run -m pytest", help = "Runs all unit tests with coverage" }
