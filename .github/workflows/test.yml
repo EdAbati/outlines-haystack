@@ -47,5 +47,5 @@ jobs:
       #   shell: bash
 
       - name: Run unit tests
-        run: uv run --python "${{ matrix.python-version }}" task test-cov
+        run: uv run --python "${{ matrix.python-version }}" poe test-cov
         shell: bash

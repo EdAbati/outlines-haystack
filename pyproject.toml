@@ -35,7 +35,7 @@ dependencies = [
   "outlines>=0.2.0,<1.0.0",
 ]
 [project.optional-dependencies]
-mlxlm = ["outlines[mlxlm]"]
+mlxlm = ["outlines[mlxlm]; sys_platform == 'darwin'"]
 openai = ["outlines[openai]"]
 transformers = ["outlines[transformers]"]
 # We include llama-cpp-python as a dependency here to ensure that it is installed
@@ -62,7 +62,7 @@ explicit = true
 
 [dependency-groups]
 core = [
-  "outlines-haystack[llama-cpp,openai,transformers]",
+  "outlines-haystack[llama-cpp,openai,transformers,mlxlm]",
 ]
 lint = [
   "ruff",
@@ -75,7 +75,7 @@ typing = [
   "mypy>=1.0.0",
 ]
 dev = [
-  "taskipy",
+  "poethepoet",
   "pre-commit",
   { include-group = "testing" },
   { include-group = "core" },
@@ -152,11 +152,15 @@ docstring-code-format = true
 "tests/*" = ["PLR2004", "S101", "TID252", "D100", "D101", "D103", "SLF001"]
 "notebooks/*" = ["ERA001", "D101"]
 
-[tool.taskipy.tasks]
+# Tasks
+[tool.poe.tasks]
 test = { cmd = "pytest", help = "Runs all unit tests" }
 test-cov = { cmd = "coverage run -m pytest", help = "Runs all unit tests with coverage" }
 cov-combine = { cmd = "coverage combine", help = "Combines all coverage data files" }
 cov-report = { cmd = "coverage report", help = "Generates a coverage report" }
-fmt = { cmd = "task fmt_lint && task fmt_format", help = "Checks code formatting and linting" }
-fmt_lint = { cmd = "ruff check . --fix", help = "Lint the codebase" }
-fmt_format = { cmd = "ruff format .", help = "Formats the codebase" }
+fmt = { sequence = [
+  "_fmt_format",
+  "_fmt_lint",
+], ignore_fail = "return_non_zero", help = "Checks code formatting and linting" }
+_fmt_lint = { cmd = "ruff check . --fix", help = "Lint the codebase" }
+_fmt_format = { cmd = "ruff format .", help = "Formats the codebase" }
