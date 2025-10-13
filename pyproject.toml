@@ -154,7 +154,7 @@ docstring-code-format = true
 
 # Tasks
 [tool.poe]
-executor.type = "uv"
+executor.type = "simple"
 
 [tool.poe.tasks]
 test = { cmd = "pytest", help = "Runs all unit tests" }
