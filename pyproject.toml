@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
 
 [project]
 name = "outlines-haystack"
-dynamic = ["version"]
+version = "0.2.5"
 description = 'Use `outlines` generators with Haystack.'
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
@@ -35,7 +35,7 @@ dependencies = [
   "outlines>=0.2.0,<1.0.0",
 ]
 [project.optional-dependencies]
-mlxlm = ["outlines[mlxlm]"]
+mlxlm = ["outlines[mlxlm]; sys_platform == 'darwin'"]
 openai = ["outlines[openai]"]
 transformers = ["outlines[transformers]"]
 # We include llama-cpp-python as a dependency here to ensure that it is installed
@@ -47,8 +47,6 @@ Documentation = "https://github.com/EdAbati/outlines-haystack#readme"
 Issues = "https://github.com/EdAbati/outlines-haystack/issues"
 Source = "https://github.com/EdAbati/outlines-haystack"
 
-[tool.hatch.version]
-path = "src/outlines_haystack/__about__.py"
 
 # Copied from : https://github.com/deepset-ai/haystack-core-integrations/blob/main/integrations/llama_cpp/pyproject.toml#L31C1-L37C62
 # On macOS GitHub runners, we use a custom index to download pre-built wheels.
@@ -62,92 +60,58 @@ name = "llama-cpp-python-macos"
 url = "https://abetlen.github.io/llama-cpp-python/whl/metal/"
 explicit = true
 
-
-# Default environment
-[tool.hatch.envs.default]
-installer = "uv"
-dependencies = [
+[dependency-groups]
+core = [
+  "outlines-haystack[llama-cpp,openai,transformers,mlxlm]",
+]
+lint = [
+  "ruff",
+]
+testing = [
   "coverage[toml]>=6.5",
   "pytest",
 ]
-features = ["llama-cpp", "openai", "transformers"]
-
-[tool.hatch.envs.default.overrides]
-platform.macos.features = ["llama-cpp", "mlxlm", "openai", "transformers"]
-
-# Unit tests
-[tool.hatch.envs.hatch-test]
-installer = "uv"
-dependencies = [
-  "coverage[toml]>=6.5",
-  "pytest",
+typing = [
+  "mypy>=1.0.0",
 ]
-features = ["openai", "transformers"]
-post-install-commands = ["uv pip freeze"]
+dev = [
+  "notebook",
+  "poethepoet",
+  "pre-commit",
+  { include-group = "testing" },
+  { include-group = "core" },
+  { include-group = "lint" },
+  { include-group = "typing" },
+]
+dev-macos = [
+  { include-group = "dev" },
+  "outlines-haystack[mlxlm]",
+]
 
-[tool.hatch.envs.hatch-test.overrides]
-platform.macos.features = ["llama-cpp", "mlxlm", "openai", "transformers"]
+[tool.uv.dependency-groups]
+dev = { requires-python = "!=3.11" }
 
-[[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.12", "3.11", "3.10", "3.9"]
-
-[tool.hatch.envs.hatch-test.scripts]
-run = "pytest{env:HATCH_TEST_ARGS:} {args}"
-run-cov = "coverage run -m pytest{env:HATCH_TEST_ARGS:} {args}"
-cov-combine = "coverage combine"
-cov-report = "coverage report"
-
+# Unit tests and Coverage
+[tool.pytest.ini_options]
+testpaths = [
+  "tests",
+]
 [tool.coverage.run]
 source_pkgs = ["outlines_haystack", "tests"]
 branch = true
 parallel = true
-omit = [
-  "src/outlines_haystack/__about__.py",
-]
-
 [tool.coverage.paths]
 outlines_haystack = [
   "src/outlines_haystack",
   "*/outlines-haystack/src/outlines_haystack",
 ]
 tests = ["tests", "*/outlines-haystack/tests"]
-
 [tool.coverage.report]
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-
-# Documentation
-[tool.hatch.envs.docs]
-dependencies = [
-  "notebook",
-  "ipywidgets",
-]
-
-
-# Type checking
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
-]
-
-[tool.hatch.envs.types.scripts]
-check = "mypy {args:src/outlines_haystack tests}"
-
-
-# Linting
-[tool.hatch.envs.hatch-static-analysis]
-dependencies = ["ruff>=0.8.0"]
-
-[tool.hatch.envs.hatch-static-analysis.scripts]
-format-check = "ruff format --check --diff {args:.}"
-format-fix = "ruff format {args:.}"
-lint-check = "ruff check {args:.}"
-lint-fix = "ruff check --fix {args:.}"
-
 
 # Format/Linting Tools
 [tool.ruff]
@@ -188,3 +152,19 @@ docstring-code-format = true
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "S101", "TID252", "D100", "D101", "D103", "SLF001"]
 "notebooks/*" = ["ERA001", "D101"]
+
+# Tasks
+[tool.poe]
+executor.type = "simple"
+
+[tool.poe.tasks]
+test = { cmd = "pytest", help = "Runs all unit tests" }
+test-cov = { cmd = "coverage run -m pytest", help = "Runs all unit tests with coverage" }
+cov-combine = { cmd = "coverage combine", help = "Combines all coverage data files" }
+cov-report = { cmd = "coverage report", help = "Generates a coverage report" }
+fmt = { sequence = [
+  "_fmt_format",
+  "_fmt_lint",
+], ignore_fail = "return_non_zero", help = "Checks code formatting and linting" }
+_fmt_lint = { cmd = "ruff check . --fix", help = "Lint the codebase" }
+_fmt_format = { cmd = "ruff format .", help = "Formats the codebase" }
