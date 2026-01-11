@@ -31,8 +31,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "haystack-ai>=2.5.0",
-  "outlines>=0.2.0,<1.0.0",
+  "haystack-ai>=2.13.0",
+  "outlines>=1.0.0,<2.0.0",
 ]
 [project.optional-dependencies]
 mlxlm = ["outlines[mlxlm]; sys_platform == 'darwin'"]
