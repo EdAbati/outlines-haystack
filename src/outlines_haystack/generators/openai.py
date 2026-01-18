@@ -26,17 +26,17 @@ if TYPE_CHECKING:
 
 class _BaseOpenAIGenerator:
     def __init__(  # noqa: PLR0913
-            self,
-            model_name: str,
-            api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
-            organization: Union[str, None] = None,
-            project: Union[str, None] = None,
-            base_url: Union[str, None] = None,
-            timeout: Union[int, None] = None,
-            max_retries: Union[int, None] = None,
-            default_headers: Union[Mapping[str, str], None] = None,
-            default_query: Union[Mapping[str, str], None] = None,
-            http_client_kwargs: Union[dict[str, Any], None] = None,
+        self,
+        model_name: str,
+        api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI generator.
 
@@ -113,17 +113,17 @@ class OpenAITextGenerator(_BaseOpenAIGenerator):
     """A component that generates text using the OpenAI API."""
 
     def __init__(  # noqa: PLR0913
-            self,
-            model_name: str,
-            api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
-            organization: Union[str, None] = None,
-            project: Union[str, None] = None,
-            base_url: Union[str, None] = None,
-            timeout: Union[int, None] = None,
-            max_retries: Union[int, None] = None,
-            default_headers: Union[Mapping[str, str], None] = None,
-            default_query: Union[Mapping[str, str], None] = None,
-            http_client_kwargs: Union[dict[str, Any], None] = None,
+        self,
+        model_name: str,
+        api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI text generator.
 
@@ -182,18 +182,18 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
     """A component that generates structured data using the OpenAI API."""
 
     def __init__(  # noqa: PLR0913
-            self,
-            model_name: str,
-            schema_object: Union[str, type[BaseModel], Callable],
-            api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
-            organization: Union[str, None] = None,
-            project: Union[str, None] = None,
-            base_url: Union[str, None] = None,
-            timeout: Union[int, None] = None,
-            max_retries: Union[int, None] = None,
-            default_headers: Union[Mapping[str, str], None] = None,
-            default_query: Union[Mapping[str, str], None] = None,
-            http_client_kwargs: Union[dict[str, Any], None] = None,
+        self,
+        model_name: str,
+        schema_object: Union[str, type[BaseModel], Callable],
+        api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI JSON generator.
 
@@ -285,18 +285,18 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
     """A component that generates a choice between different options using the OpenAI API."""
 
     def __init__(  # noqa: PLR0913
-            self,
-            model_name: str,
-            choices: list[str],
-            api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
-            organization: Union[str, None] = None,
-            project: Union[str, None] = None,
-            base_url: Union[str, None] = None,
-            timeout: Union[int, None] = None,
-            max_retries: Union[int, None] = None,
-            default_headers: Union[Mapping[str, str], None] = None,
-            default_query: Union[Mapping[str, str], None] = None,
-            http_client_kwargs: Union[dict[str, Any], None] = None,
+        self,
+        model_name: str,
+        choices: list[str],
+        api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI choice generator.
 
