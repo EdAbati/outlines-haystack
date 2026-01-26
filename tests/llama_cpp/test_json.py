@@ -1,79 +1,114 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
+import json
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
 from haystack import Pipeline
-from outlines import samplers
 
 from outlines_haystack.generators.llama_cpp import LlamaCppJSONGenerator
-from tests.utils import User, mock_json_func, user_schema_str
+from tests.utils import User, user_schema_str
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 REPO_ID = "TheBloke/Llama-2-7B-GGUF"
 FILE_NAME = "llama-2-7b.Q4_K_M.gguf"
 
 
+@pytest.fixture
+def mock_llamacpp_generator_json(mock_llamacpp_generator: mock.MagicMock) -> Generator[mock.MagicMock]:
+    mock_generator_obj = mock.MagicMock()
+    json_string = json.dumps({"name": "John"})
+    mock_generator_obj.return_value = json_string
+    mock_llamacpp_generator.return_value = mock_generator_obj
+    return mock_generator_obj
+
+
+@pytest.fixture
+def mock_llamacpp_generator_json_jane(mock_llamacpp_generator: mock.MagicMock) -> Generator[mock.MagicMock]:
+    mock_generator_obj = mock.MagicMock()
+    json_string = json.dumps({"name": "Jane"})
+    mock_generator_obj.return_value = json_string
+    mock_llamacpp_generator.return_value = mock_generator_obj
+    return mock_generator_obj
+
+
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_init_default() -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
     assert component.repo_id == REPO_ID
     assert component.file_name == FILE_NAME
     assert component.schema_object == user_schema_str
     assert component.model_kwargs == {}
-    assert component.sampling_algorithm.value == "multinomial"
-    assert component.sampling_algorithm_kwargs == {}
-    assert component.generation_kwargs == {}
     assert component.whitespace_pattern is None
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_init_with_string_schema() -> None:
     schema_str = '{"type": "object", "properties": {"name": {"type": "string"}}}'
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=schema_str)
     assert component.schema_object == schema_str
 
 
-def test_init_different_sampler() -> None:
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
+def test_init_with_whitespace_pattern() -> None:
+    component = LlamaCppJSONGenerator(
+        repo_id=REPO_ID,
+        file_name=FILE_NAME,
+        schema_object=User,
+        whitespace_pattern=r"\s+",
+    )
+    assert component.whitespace_pattern == r"\s+"
+
+
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
+def test_init_with_kwargs() -> None:
     component = LlamaCppJSONGenerator(
         repo_id=REPO_ID,
         file_name=FILE_NAME,
         schema_object=User,
         model_kwargs={"n_gpu_layers": 4},
-        sampling_algorithm="multinomial",
-        sampling_algorithm_kwargs={"temperature": 0.5},
-        generation_kwargs={"max_tokens": 100},
         whitespace_pattern=r"\s+",
     )
     assert component.model_kwargs == {"n_gpu_layers": 4}
-    assert component.sampling_algorithm.value == "multinomial"
-    assert component.sampling_algorithm_kwargs == {"temperature": 0.5}
-    assert component.generation_kwargs == {"max_tokens": 100}
     assert component.whitespace_pattern == r"\s+"
 
 
-@mock.patch("outlines_haystack.generators.transformers.generate.json", return_value="mock_generator")
-@mock.patch("outlines_haystack.generators.llama_cpp.models.llamacpp", return_value="mock_model")
-def test_warm_up(mock_model: mock.Mock, mock_generator: mock.Mock) -> None:
+def test_warm_up(
+    mock_from_llamacpp: mock.MagicMock,
+    mock_llamacpp_generator: mock.MagicMock,
+    mock_llama: mock.MagicMock,
+) -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
     assert component.model is None
-    assert component.sampler is None
+    assert component._generator is None
     assert not component._warmed_up
+
+    # Setup mocks
+    mock_llamacpp_model = mock.MagicMock()
+    mock_llama.from_pretrained.return_value = mock_llamacpp_model
+    mock_outlines_model = mock.MagicMock()
+    mock_from_llamacpp.return_value = mock_outlines_model
+
     component.warm_up()
-    assert component.model == "mock_model"
+
     assert component._warmed_up
-    mock_model.assert_called_once_with(
+    mock_llama.from_pretrained.assert_called_once_with(
         repo_id=REPO_ID,
         filename=FILE_NAME,
     )
-    mock_generator.assert_called_once_with(
-        "mock_model",
-        schema_object=user_schema_str,
-        sampler=mock.ANY,
-        whitespace_pattern=None,
-    )
-    assert isinstance(component.sampler, samplers.MultinomialSampler)
+    mock_from_llamacpp.assert_called_once_with(mock_llamacpp_model)
+    assert component.model == mock_outlines_model
+    # Verify Generator was called with the model and the output type (Pydantic model)
+    mock_llamacpp_generator.assert_called_once_with(mock_outlines_model, User)
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_run_not_warm() -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
     with pytest.raises(
@@ -83,13 +118,13 @@ def test_run_not_warm() -> None:
         component.run(prompt="test-prompt")
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_to_dict() -> None:
     component = LlamaCppJSONGenerator(
         repo_id=REPO_ID,
         file_name=FILE_NAME,
         schema_object=User,
         model_kwargs={"n_gpu_layers": 4},
-        sampling_algorithm_kwargs={"temperature": 0.5},
         whitespace_pattern=r"\s+",
     )
     expected_dict = {
@@ -99,15 +134,13 @@ def test_to_dict() -> None:
             "file_name": FILE_NAME,
             "schema_object": user_schema_str,
             "model_kwargs": {"n_gpu_layers": 4},
-            "sampling_algorithm": "multinomial",
-            "sampling_algorithm_kwargs": {"temperature": 0.5},
-            "generation_kwargs": {},
             "whitespace_pattern": r"\s+",
         },
     }
     assert component.to_dict() == expected_dict
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_from_dict() -> None:
     component_dict = {
         "type": "outlines_haystack.generators.llama_cpp.LlamaCppJSONGenerator",
@@ -116,8 +149,6 @@ def test_from_dict() -> None:
             "file_name": FILE_NAME,
             "schema_object": user_schema_str,
             "model_kwargs": {"n_gpu_layers": 4},
-            "sampling_algorithm": "multinomial",
-            "sampling_algorithm_kwargs": {"temperature": 0.5},
             "whitespace_pattern": r"\s+",
         },
     }
@@ -126,11 +157,10 @@ def test_from_dict() -> None:
     assert component.file_name == FILE_NAME
     assert component.schema_object == user_schema_str
     assert component.model_kwargs == {"n_gpu_layers": 4}
-    assert component.sampling_algorithm.value == "multinomial"
-    assert component.sampling_algorithm_kwargs == {"temperature": 0.5}
     assert component.whitespace_pattern == r"\s+"
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_pipeline() -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
     p = Pipeline()
@@ -140,39 +170,53 @@ def test_pipeline() -> None:
     assert p.to_dict() == q.to_dict()
 
 
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator_json", "mock_llama")
 def test_run() -> None:
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
-
-    with (
-        mock.patch("outlines_haystack.generators.llama_cpp.generate.json") as mock_generate_json,
-        mock.patch("outlines_haystack.generators.llama_cpp.models.llamacpp") as mock_model_llamacpp,
-    ):
-        mock_model_llamacpp.return_value = "MockModel"
-        mock_generate_json.return_value = mock_json_func
-        component.warm_up()
-        response = component.run("Create a user profile for John")
+    component.warm_up()
+    response = component.run("Create a user profile for John")
 
     # check that the component returns the correct response
     assert isinstance(response, dict)
     assert "structured_replies" in response
     assert isinstance(response["structured_replies"], list)
     assert len(response["structured_replies"]) == 1
-    assert all(isinstance(reply, dict) for reply in response["structured_replies"])
+    assert all(isinstance(reply, str) for reply in response["structured_replies"])
+    json_string = json.dumps({"name": "John"})
+    assert response["structured_replies"][0] == json_string
 
 
-def test_run_empty_prompt() -> None:
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator_json_jane", "mock_llama")
+def test_run_with_string_return() -> None:
+    # Test case where Generator returns a JSON string
     component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
+    component.warm_up()
+    response = component.run("Create a user profile for Jane")
 
-    with (
-        mock.patch("outlines_haystack.generators.llama_cpp.generate.json") as mock_generate_json,
-        mock.patch("outlines_haystack.generators.llama_cpp.models.llamacpp") as mock_model_llamacpp,
-    ):
-        mock_model_llamacpp.return_value = "MockModel"
-        mock_generate_json.return_value = mock_json_func
-        component.warm_up()
-        response = component.run("")
-
+    json_string = json.dumps({"name": "Jane"})
     assert isinstance(response, dict)
     assert "structured_replies" in response
-    assert isinstance(response["structured_replies"], list)
-    assert len(response["structured_replies"]) == 0
+    assert isinstance(response["structured_replies"][0], str)
+    assert response["structured_replies"][0] == json_string
+
+
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
+def test_run_empty_prompt() -> None:
+    component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
+    component.warm_up()
+    response = component.run("")
+
+    assert response == {"structured_replies": []}
+
+
+@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llama")
+def test_run_with_generation_kwargs(mock_llamacpp_generator_json: mock.MagicMock) -> None:
+    component = LlamaCppJSONGenerator(repo_id=REPO_ID, file_name=FILE_NAME, schema_object=User)
+    component.warm_up()
+    generation_kwargs = {"max_tokens": 100, "seed": 42}
+    response = component.run("Create a user profile for John", generation_kwargs=generation_kwargs)
+
+    # Verify the generator was called with the correct kwargs
+    json_string = json.dumps({"name": "John"})
+    mock_llamacpp_generator_json.assert_called_once_with("Create a user profile for John", **generation_kwargs)
+    assert response["structured_replies"][0] == json_string
