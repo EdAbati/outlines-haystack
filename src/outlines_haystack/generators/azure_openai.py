@@ -1,19 +1,28 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
+import json
 import os
-from collections.abc import Mapping
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
+import openai
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
-from outlines import generate, models
+from haystack.utils.http_client import init_http_client
+from outlines import Generator, from_openai
+from outlines.types import Choice, JsonSchema
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from outlines_haystack.generators.openai_utils import set_openai_config
-from outlines_haystack.generators.utils import schema_object_to_json_str, validate_choices
+from outlines_haystack.generators.utils import validate_choices
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
+    from openai.lib.azure import AzureADTokenProvider
+    from outlines.models import OpenAI as outlines_OpenAI
 
 
 class _BaseAzureOpenAIGenerator:
@@ -25,13 +34,13 @@ class _BaseAzureOpenAIGenerator:
         api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        azure_ad_token_provider: AzureADTokenProvider | None = None,
         organization: Union[str, None] = None,
-        project: Union[str, None] = None,
         timeout: Union[int, None] = None,
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the Azure OpenAI generator.
 
@@ -44,9 +53,9 @@ class _BaseAzureOpenAIGenerator:
             api_version: The API version to use for the Azure OpenAI API.
             api_key: The Azure OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
             azure_ad_token: Your Azure Active Directory token, https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id
+            azure_ad_token_provider: A function that returns an Azure Active Directory token, will be invoked on
+            every request.
             organization: The organization ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_ORG_ID`
-            environment variable.
-            project: The project ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_PROJECT_ID`
             environment variable.
             timeout: The timeout to use for the Azure OpenAI API. If not provided, uses `OPENAI_TIMEOUT` environment
             variable. Defaults to 30.0.
@@ -54,9 +63,8 @@ class _BaseAzureOpenAIGenerator:
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the Azure OpenAI API client.
             default_query: The default query parameters to use in the Azure OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client`or
+            `httpx.AsyncClient`. For more information, see the [HTTPX documentation](https://www.python-httpx.org/api/#client).
         """
         # Same defaults as in Haystack
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L116-L125
@@ -75,8 +83,8 @@ class _BaseAzureOpenAIGenerator:
         self.api_version = api_version
         self.api_key = api_key
         self.azure_ad_token = azure_ad_token
+        self.azure_ad_token_provider = azure_ad_token_provider
         self.organization = organization
-        self.project = project
 
         # https://github.com/deepset-ai/haystack/blob/97126eb544be5bb7d1c5273e85597db6011b017c/haystack/components/generators/azure.py#L139-L140
         self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", "30"))
@@ -84,25 +92,24 @@ class _BaseAzureOpenAIGenerator:
 
         self.default_headers = default_headers
         self.default_query = default_query
+        self.http_client_kwargs = http_client_kwargs
 
-        self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
-        self.openai_config = set_openai_config(generation_kwargs)
-
-        self.model = models.azure_openai(
-            deployment_name=self.azure_deployment,
-            model_name=self.model_name,
-            config=self.openai_config,
-            azure_endpoint=self.azure_endpoint,
+        self.client = openai.AzureOpenAI(
             api_version=self.api_version,
+            azure_endpoint=self.azure_endpoint,
+            azure_deployment=self.azure_deployment,
             api_key=self.api_key.resolve_value(),
             azure_ad_token=self.azure_ad_token.resolve_value(),
+            azure_ad_token_provider=self.azure_ad_token_provider,
             organization=self.organization,
-            project=self.project,
             timeout=self.timeout,
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
+            http_client=init_http_client(self.http_client_kwargs, async_client=False),
         )
+
+        self.model: outlines_OpenAI = from_openai(self.client, model_name=self.model_name)
 
     def to_dict(self) -> dict[str, Any]:
         return default_to_dict(
@@ -114,12 +121,10 @@ class _BaseAzureOpenAIGenerator:
             api_key=self.api_key.to_dict(),
             azure_ad_token=self.azure_ad_token.to_dict(),
             organization=self.organization,
-            project=self.project,
             timeout=self.timeout,
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
     @classmethod
@@ -132,30 +137,77 @@ class _BaseAzureOpenAIGenerator:
 class AzureOpenAITextGenerator(_BaseAzureOpenAIGenerator):
     """A component that generates text using the Azure OpenAI API."""
 
-    @component.output_types(replies=list[str])
-    def run(
+    def __init__(  # noqa: PLR0913
         self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, list[str]]:
+        model_name: str,
+        azure_endpoint: Union[str, None] = None,
+        azure_deployment: Union[str, None] = None,
+        api_version: Union[str, None] = None,
+        api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
+        azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        azure_ad_token_provider: AzureADTokenProvider | None = None,
+        organization: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
+    ) -> None:
+        """Initialize the Azure OpenAI text generator.
+
+        Args:
+            model_name: The name of the OpenAI model to use.
+            azure_endpoint: The endpoint of the deployed model, for example `https://example-resource.azure.openai.com/`.
+            azure_deployment:  A model deployment, if given sets the base client URL to include
+            `/deployments/{azure_deployment}`.
+            api_version: The API version to use for the Azure OpenAI API.
+            api_key: The Azure OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
+            azure_ad_token: Your Azure Active Directory token, https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id
+            azure_ad_token_provider: A function that returns an Azure Active Directory token, will be invoked on
+            every request.
+            organization: The organization ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_ORG_ID`
+            environment variable.
+            timeout: The timeout to use for the Azure OpenAI API. If not provided, uses `OPENAI_TIMEOUT` environment
+            variable. Defaults to 30.0.
+            max_retries: The maximum number of retries to use for the Azure OpenAI API. If not provided, uses
+            `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
+            default_headers: The default headers to use in the Azure OpenAI API client.
+            default_query: The default query parameters to use in the Azure OpenAI API client.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
+        """
+        super(AzureOpenAITextGenerator, self).__init__(  # noqa: UP008
+            model_name=model_name,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
+            api_version=api_version,
+            api_key=api_key,
+            azure_ad_token=azure_ad_token,
+            azure_ad_token_provider=azure_ad_token_provider,
+            organization=organization,
+            timeout=timeout,
+            max_retries=max_retries,
+            default_headers=default_headers,
+            default_query=default_query,
+            http_client_kwargs=http_client_kwargs,
+        )
+        self.generator = Generator(self.model)
+
+    @component.output_types(replies=list[str])
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
         """
         if not prompt:
             return {"replies": []}
 
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_func = generate.text(self.model)
-        answer = generate_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"replies": [answer]}
 
 
@@ -166,35 +218,35 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
-        schema_object: Union[str, type[BaseModel]],
+        schema_object: Union[str, type[BaseModel], Callable],
         azure_endpoint: Union[str, None] = None,
         azure_deployment: Union[str, None] = None,
         api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        azure_ad_token_provider: AzureADTokenProvider | None = None,
         organization: Union[str, None] = None,
-        project: Union[str, None] = None,
         timeout: Union[int, None] = None,
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the Azure OpenAI JSON generator.
 
         Args:
-            model_name: The name of the OpenAI model to use. The model name is needed to load the correct tokenizer for
-            the model. The tokenizer is necessary for structured generation. See https://dottxt-ai.github.io/outlines/latest/reference/models/openai/#azure-openai-models
-            schema_object: The JSON Schema to generate data for. Can be a JSON string, or a Pydantic model.
+            model_name: The name of the OpenAI model to use.
+            schema_object: The schema object to use for structured generation. Can be a Pydantic model class,
+                a JSON schema string, or a callable (function signature will be used as schema).
             azure_endpoint: The endpoint of the deployed model, for example `https://example-resource.azure.openai.com/`.
             azure_deployment:  A model deployment, if given sets the base client URL to include
             `/deployments/{azure_deployment}`.
             api_version: The API version to use for the Azure OpenAI API.
             api_key: The Azure OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
             azure_ad_token: Your Azure Active Directory token, https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id
+            azure_ad_token_provider: A function that returns an Azure Active Directory token, will be invoked on
+            every request.
             organization: The organization ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_ORG_ID`
-            environment variable.
-            project: The project ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_PROJECT_ID`
             environment variable.
             timeout: The timeout to use for the Azure OpenAI API. If not provided, uses `OPENAI_TIMEOUT` environment
             variable. Defaults to 30.0.
@@ -202,9 +254,9 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the Azure OpenAI API client.
             default_query: The default query parameters to use in the Azure OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
         """
         super(AzureOpenAIJSONGenerator, self).__init__(  # noqa: UP008
             model_name=model_name,
@@ -213,15 +265,30 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
             api_version=api_version,
             api_key=api_key,
             azure_ad_token=azure_ad_token,
+            azure_ad_token_provider=azure_ad_token_provider,
             organization=organization,
-            project=project,
             timeout=timeout,
             max_retries=max_retries,
             default_headers=default_headers,
             default_query=default_query,
-            generation_kwargs=generation_kwargs,
+            http_client_kwargs=http_client_kwargs,
         )
-        self.schema_object = schema_object_to_json_str(schema_object)
+
+        # Determine the output type for the Generator
+        if isinstance(schema_object, str):
+            # Raw JSON schema string - wrap with JsonSchema
+            self.schema_object = schema_object
+            output_type = JsonSchema(schema_object)
+        elif isinstance(schema_object, type) and issubclass(schema_object, BaseModel):
+            # Pydantic model - use directly
+            self.schema_object = json.dumps(schema_object.model_json_schema())
+            output_type = schema_object
+        else:
+            # Callable - use directly, Outlines handles it internally
+            self.schema_object = str(schema_object)
+            output_type = schema_object
+
+        self.generator = Generator(self.model, output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""
@@ -235,38 +302,26 @@ class AzureOpenAIJSONGenerator(_BaseAzureOpenAIGenerator):
             api_key=self.api_key.to_dict(),
             azure_ad_token=self.azure_ad_token.to_dict(),
             organization=self.organization,
-            project=self.project,
             timeout=self.timeout,
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
-    @component.output_types(structured_replies=list[dict[str, Any]])
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, list[dict[str, Any]]]:
+    @component.output_types(structured_replies=list[str])
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
         """
         if not prompt:
-            return {"replies": []}
+            return {"structured_replies": []}
 
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_func = generate.json(self.model, schema_object=self.schema_object)
-        answer = generate_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"structured_replies": [answer]}
 
 
@@ -283,19 +338,18 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
         api_version: Union[str, None] = None,
         api_key: Secret = Secret.from_env_var("AZURE_OPENAI_API_KEY", strict=False),  # noqa: B008
         azure_ad_token: Secret = Secret.from_env_var("AZURE_OPENAI_AD_TOKEN", strict=False),  # noqa: B008
+        azure_ad_token_provider: AzureADTokenProvider | None = None,
         organization: Union[str, None] = None,
-        project: Union[str, None] = None,
         timeout: Union[int, None] = None,
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
-        """Initialize the Azure OpenAI Choice generator.
+        """Initialize the Azure OpenAI choice generator.
 
         Args:
-            model_name: The name of the OpenAI model to use. The model name is needed to load the correct tokenizer for
-            the model. The tokenizer is necessary for structured generation. See https://dottxt-ai.github.io/outlines/latest/reference/models/openai/#azure-openai-models
+            model_name: The name of the OpenAI model to use.
             choices: The list of choices to choose from.
             azure_endpoint: The endpoint of the deployed model, for example `https://example-resource.azure.openai.com/`.
             azure_deployment:  A model deployment, if given sets the base client URL to include
@@ -303,9 +357,9 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
             api_version: The API version to use for the Azure OpenAI API.
             api_key: The Azure OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
             azure_ad_token: Your Azure Active Directory token, https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id
+            azure_ad_token_provider: A function that returns an Azure Active Directory token, will be invoked on
+            every request.
             organization: The organization ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_ORG_ID`
-            environment variable.
-            project: The project ID to use for the Azure OpenAI API. If not provided, uses `OPENAI_PROJECT_ID`
             environment variable.
             timeout: The timeout to use for the Azure OpenAI API. If not provided, uses `OPENAI_TIMEOUT` environment
             variable. Defaults to 30.0.
@@ -313,9 +367,9 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the Azure OpenAI API client.
             default_query: The default query parameters to use in the Azure OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
         """
         super(AzureOpenAIChoiceGenerator, self).__init__(  # noqa: UP008
             model_name=model_name,
@@ -324,16 +378,17 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
             api_version=api_version,
             api_key=api_key,
             azure_ad_token=azure_ad_token,
+            azure_ad_token_provider=azure_ad_token_provider,
             organization=organization,
-            project=project,
             timeout=timeout,
             max_retries=max_retries,
             default_headers=default_headers,
             default_query=default_query,
-            generation_kwargs=generation_kwargs,
+            http_client_kwargs=http_client_kwargs,
         )
         validate_choices(choices)
         self.choices = choices
+        self.generator = Generator(self.model, Choice(choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""
@@ -347,36 +402,24 @@ class AzureOpenAIChoiceGenerator(_BaseAzureOpenAIGenerator):
             api_key=self.api_key.to_dict(),
             azure_ad_token=self.azure_ad_token.to_dict(),
             organization=self.organization,
-            project=self.project,
             timeout=self.timeout,
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
     @component.output_types(choice=str)
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, str]:
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
         """
         if not prompt:
             return {"choice": ""}
 
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_func = generate.choice(self.model, choices=self.choices)
-        answer = generate_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"choice": answer}
