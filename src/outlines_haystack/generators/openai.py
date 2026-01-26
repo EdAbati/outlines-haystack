@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
-import json
 import os
 from typing import TYPE_CHECKING, Any, Union
 
@@ -12,16 +11,16 @@ from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
 from haystack.utils.http_client import init_http_client
 from outlines import Generator, from_openai
-from outlines.types import Choice, JsonSchema
-from pydantic import BaseModel
+from outlines.types import Choice
 from typing_extensions import Self
 
-from outlines_haystack.generators.utils import validate_choices
+from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
 
     from outlines.models import OpenAI as outlines_OpenAI
+    from pydantic import BaseModel
 
 
 class _BaseOpenAIGenerator:
@@ -231,20 +230,7 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
             http_client_kwargs=http_client_kwargs,
         )
 
-        # Determine the output type for the Generator
-        if isinstance(schema_object, str):
-            # Raw JSON schema string - wrap with JsonSchema
-            self.schema_object = schema_object
-            output_type = JsonSchema(schema_object)
-        elif isinstance(schema_object, type) and issubclass(schema_object, BaseModel):
-            # Pydantic model - use directly
-            self.schema_object = json.dumps(schema_object.model_json_schema())
-            output_type = schema_object
-        else:
-            # Callable - use directly, Outlines handles it internally
-            self.schema_object = str(schema_object)
-            output_type = schema_object
-
+        self.schema_object, output_type = process_schema_object(schema_object)
         self.generator = Generator(self.model, output_type)
 
     def to_dict(self) -> dict[str, Any]:
