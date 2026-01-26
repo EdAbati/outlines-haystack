@@ -1,34 +1,35 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Union
+import json
+from typing import TYPE_CHECKING, Any, Union
 
+import mlx_lm
 from haystack import component, default_from_dict, default_to_dict
-from outlines import generate, models
+from outlines import Generator, from_mlxlm
+from outlines.types import Choice, JsonSchema
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from outlines_haystack.generators.utils import (
-    SamplingAlgorithm,
-    get_sampler,
-    get_sampling_algorithm,
-    schema_object_to_json_str,
-    validate_choices,
-)
+from outlines_haystack.generators.utils import validate_choices
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    import outlines.models as outlines_models
+    from outlines.generator import SteerableGenerator
 
 
 class _BaseMLXLMGenerator:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         model_name: str,
         tokenizer_config: Union[dict[str, Any], None] = None,
         model_config: Union[dict[str, Any], None] = None,
         adapter_path: Union[str, None] = None,
         lazy: bool = False,  # noqa: FBT001, FBT002
-        sampling_algorithm: SamplingAlgorithm = SamplingAlgorithm.MULTINOMIAL,
-        sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the MLXLM generator component.
 
@@ -42,25 +43,42 @@ class _BaseMLXLMGenerator:
             adapter_path: Path to the LoRA adapters. If provided, applies LoRA layers to the model. Default: None.
             lazy: If False eval the model parameters to make sure they are loaded in memory before returning,
             otherwise they will be loaded when needed. Default: False
-            sampling_algorithm: The sampling algorithm to use. Default: SamplingAlgorithm.MULTINOMIAL
-            sampling_algorithm_kwargs: Additional keyword arguments for the sampling algorithm.
-            See https://dottxt-ai.github.io/outlines/latest/reference/samplers/ for the available parameters.
-            If None, defaults to an empty dictionary.
         """
         self.model_name = model_name
         self.tokenizer_config = tokenizer_config if tokenizer_config is not None else {}
         self.model_config = model_config if model_config is not None else {}
         self.adapter_path = adapter_path
         self.lazy = lazy
-        self.sampling_algorithm = get_sampling_algorithm(sampling_algorithm)
-        self.sampling_algorithm_kwargs = sampling_algorithm_kwargs if sampling_algorithm_kwargs is not None else {}
-        self.model = None
-        self.sampler = None
-        self.generate_func = None
+        self.model: outlines_models.MLXLM | None = None
+        self._generator: SteerableGenerator | None = None
+
+    @property
+    def generator(self) -> SteerableGenerator:
+        """Get the generator instance.
+
+        Returns:
+            The generator instance (callable that generates text/structured data).
+
+        Raises:
+            RuntimeError: If the generator is not initialized (warm_up not called).
+        """
+        if self._generator is None:
+            msg = "Generator not initialized. Call warm_up() before accessing the generator."
+            raise RuntimeError(msg)
+        return self._generator
+
+    @generator.setter
+    def generator(self, value: SteerableGenerator) -> None:
+        """Set the generator instance.
+
+        Args:
+            value: The generator instance to set.
+        """
+        self._generator = value
 
     @property
     def _warmed_up(self) -> bool:
-        return self.model is not None or self.sampler is not None or self.generate_func is not None
+        return self.model is not None and self._generator is not None
 
     def _warm_up_generate_func(self) -> None:
         """For performance reasons, we should create the generate function once."""
@@ -70,14 +88,15 @@ class _BaseMLXLMGenerator:
         """Initializes the component."""
         if self._warmed_up:
             return
-        self.model = models.mlxlm(
-            model_name=self.model_name,
+
+        mlx_model, tokenizer = mlx_lm.load(
+            self.model_name,
             tokenizer_config=self.tokenizer_config,
             model_config=self.model_config,
             adapter_path=self.adapter_path,
             lazy=self.lazy,
         )
-        self.sampler = get_sampler(self.sampling_algorithm, **self.sampling_algorithm_kwargs)
+        self.model = from_mlxlm(mlx_model, tokenizer)
         self._warm_up_generate_func()
 
     def _check_component_warmed_up(self) -> None:
@@ -94,8 +113,6 @@ class _BaseMLXLMGenerator:
             model_config=self.model_config,
             adapter_path=self.adapter_path,
             lazy=self.lazy,
-            sampling_algorithm=self.sampling_algorithm.value,
-            sampling_algorithm_kwargs=self.sampling_algorithm_kwargs,
         )
 
     @classmethod
@@ -113,26 +130,24 @@ class MLXLMTextGenerator(_BaseMLXLMGenerator):
     """A component for generating text using an MLXLM model."""
 
     def _warm_up_generate_func(self) -> None:
-        self.generate_func = generate.text(self.model, self.sampler)
+        self.generator: SteerableGenerator = Generator(self.model)
 
     @component.output_types(replies=list[str])
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-    ) -> dict[str, list[str]]:
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/reference/generation/generator/)
+                for more information.
         """
         self._check_component_warmed_up()
 
         if not prompt:
             return {"replies": []}
 
-        answer = self.generate_func(prompts=prompt, max_tokens=max_tokens)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"replies": [answer]}
 
 
@@ -148,8 +163,6 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
         model_config: Union[dict[str, Any], None] = None,
         adapter_path: Union[str, None] = None,
         lazy: bool = False,  # noqa: FBT001, FBT002
-        sampling_algorithm: SamplingAlgorithm = SamplingAlgorithm.MULTINOMIAL,
-        sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
         whitespace_pattern: Union[str, None] = None,
     ) -> None:
         """Initialize the MLXLM JSON generator component.
@@ -158,17 +171,14 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
 
         Args:
             model_name: The path or the huggingface repository to load the model from.
-            schema_object: The JSON Schema to generate data for. Can be a JSON string, a Pydantic model, or a callable.
+            schema_object: The schema object to use for structured generation. Can be a Pydantic model class,
+                a JSON schema string, or a callable (function signature will be used as schema).
             tokenizer_config: Configuration parameters specifically for the tokenizer.
             If None, defaults to an empty dictionary.
             model_config: Configuration parameters specifically for the model. If None, defaults to an empty dictionary.
             adapter_path: Path to the LoRA adapters. If provided, applies LoRA layers to the model. Default: None.
             lazy: If False eval the model parameters to make sure they are loaded in memory before returning,
             otherwise they will be loaded when needed. Default: False
-            sampling_algorithm: The sampling algorithm to use. Default: SamplingAlgorithm.MULTINOMIAL
-            sampling_algorithm_kwargs: Additional keyword arguments for the sampling algorithm.
-            See https://dottxt-ai.github.io/outlines/latest/reference/samplers/ for the available parameters.
-            If None, defaults to an empty dictionary.
             whitespace_pattern: Pattern to use for JSON syntactic whitespace (doesn't impact string literals).
             See https://dottxt-ai.github.io/outlines/latest/reference/generation/json/ for more information.
         """
@@ -178,19 +188,26 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             model_config=model_config,
             adapter_path=adapter_path,
             lazy=lazy,
-            sampling_algorithm=sampling_algorithm,
-            sampling_algorithm_kwargs=sampling_algorithm_kwargs,
         )
-        self.schema_object = schema_object_to_json_str(schema_object)
+
+        # Determine the output type for the Generator
+        if isinstance(schema_object, str):
+            # Raw JSON schema string - wrap with JsonSchema and use whitespace_pattern
+            self.schema_object = schema_object
+            self.output_type = JsonSchema(schema_object, whitespace_pattern=whitespace_pattern)
+        elif isinstance(schema_object, type) and issubclass(schema_object, BaseModel):
+            # Pydantic model - use directly
+            self.schema_object = json.dumps(schema_object.model_json_schema())
+            self.output_type = schema_object
+        else:
+            # Callable - use directly, Outlines handles it internally
+            self.schema_object = str(schema_object)
+            self.output_type = schema_object
+
         self.whitespace_pattern = whitespace_pattern
 
     def _warm_up_generate_func(self) -> None:
-        self.generate_func = generate.json(
-            self.model,
-            schema_object=self.schema_object,
-            sampler=self.sampler,
-            whitespace_pattern=self.whitespace_pattern,
-        )
+        self.generator: SteerableGenerator = Generator(self.model, self.output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -202,29 +219,25 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             model_config=self.model_config,
             adapter_path=self.adapter_path,
             lazy=self.lazy,
-            sampling_algorithm=self.sampling_algorithm.value,
-            sampling_algorithm_kwargs=self.sampling_algorithm_kwargs,
             whitespace_pattern=self.whitespace_pattern,
         )
 
-    @component.output_types(structured_replies=list[dict[str, Any]])
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-    ) -> dict[str, list[dict[str, Any]]]:
+    @component.output_types(structured_replies=list[str])
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/reference/generation/generator/)
+                for more information.
         """
         self._check_component_warmed_up()
 
         if not prompt:
             return {"structured_replies": []}
 
-        answer = self.generate_func(prompts=prompt, max_tokens=max_tokens)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"structured_replies": [answer]}
 
 
@@ -240,8 +253,6 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
         model_config: Union[dict[str, Any], None] = None,
         adapter_path: Union[str, None] = None,
         lazy: bool = False,  # noqa: FBT001, FBT002
-        sampling_algorithm: SamplingAlgorithm = SamplingAlgorithm.MULTINOMIAL,
-        sampling_algorithm_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the MLXLM Choice generator component.
 
@@ -256,10 +267,6 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
             adapter_path: Path to the LoRA adapters. If provided, applies LoRA layers to the model. Default: None.
             lazy: If False eval the model parameters to make sure they are loaded in memory before returning,
             otherwise they will be loaded when needed. Default: False
-            sampling_algorithm: The sampling algorithm to use. Default: SamplingAlgorithm.MULTINOMIAL
-            sampling_algorithm_kwargs: Additional keyword arguments for the sampling algorithm.
-            See https://dottxt-ai.github.io/outlines/latest/reference/samplers/ for the available parameters.
-            If None, defaults to an empty dictionary.
         """
         super(MLXLMChoiceGenerator, self).__init__(  # noqa: UP008
             model_name=model_name,
@@ -267,14 +274,12 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
             model_config=model_config,
             adapter_path=adapter_path,
             lazy=lazy,
-            sampling_algorithm=sampling_algorithm,
-            sampling_algorithm_kwargs=sampling_algorithm_kwargs,
         )
         validate_choices(choices)
         self.choices = choices
 
     def _warm_up_generate_func(self) -> None:
-        self.generate_func = generate.choice(self.model, choices=self.choices, sampler=self.sampler)
+        self.generator: SteerableGenerator = Generator(self.model, Choice(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -286,26 +291,22 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
             model_config=self.model_config,
             adapter_path=self.adapter_path,
             lazy=self.lazy,
-            sampling_algorithm=self.sampling_algorithm.value,
-            sampling_algorithm_kwargs=self.sampling_algorithm_kwargs,
         )
 
     @component.output_types(choice=str)
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-    ) -> dict[str, str]:
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/reference/generation/generator/)
+                for more information.
         """
         self._check_component_warmed_up()
 
         if not prompt:
             return {"choice": ""}
 
-        choice = self.generate_func(prompts=prompt, max_tokens=max_tokens)
+        generation_kwargs = generation_kwargs or {}
+        choice = self.generator(prompt, **generation_kwargs)
         return {"choice": choice}
