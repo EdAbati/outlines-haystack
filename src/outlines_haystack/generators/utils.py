@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from outlines.types import JsonSchema
 from pydantic import BaseModel
@@ -21,16 +21,14 @@ def validate_choices(choices: list[str]) -> None:
 
 
 def process_schema_object(
-    schema_object: Union[str, type[BaseModel], Callable],
-    whitespace_pattern: Union[str, None] = None,
-) -> tuple[str, Union[JsonSchema, type[BaseModel], Callable]]:
+    schema_object: str | type[BaseModel] | Callable,
+) -> tuple[str, JsonSchema | type[BaseModel] | Callable]:
     """Convert schema_object to (serializable_str, output_type) tuple.
 
     Args:
         schema_object: The schema object to process. Can be a Pydantic model class,
             a JSON schema string, or a callable (function signature will be used as schema).
-        whitespace_pattern: Pattern to use for JSON syntactic whitespace (doesn't impact string literals).
-            Only used when schema_object is a string.
+
 
     Returns:
         A tuple containing:
@@ -38,9 +36,9 @@ def process_schema_object(
         - output_type: The type to pass to Outlines Generator
     """
     if isinstance(schema_object, str):
-        # Raw JSON schema string - wrap with JsonSchema and use whitespace_pattern
+        # Raw JSON schema string - wrap with JsonSchema
         serializable_str = schema_object
-        output_type = JsonSchema(schema_object, whitespace_pattern=whitespace_pattern)
+        output_type = JsonSchema(schema_object)
     elif isinstance(schema_object, type) and issubclass(schema_object, BaseModel):
         # Pydantic model - convert to JSON schema string for serialization
         serializable_str = json.dumps(schema_object.model_json_schema())
