@@ -67,7 +67,7 @@ def test_warm_up(
 ) -> None:
     component = TransformersChoiceGenerator(model_name=MODEL_NAME, choices=CHOICES, device="cpu")
     assert component.model is None
-    assert component.generator is None
+    assert component._generator is None
     assert not component._warmed_up
 
     # Setup mocks

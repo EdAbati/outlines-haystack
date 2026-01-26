@@ -60,7 +60,7 @@ def test_warm_up(
 ) -> None:
     component = TransformersTextGenerator(model_name=MODEL_NAME, device="cpu")
     assert component.model is None
-    assert component.generator is None
+    assert component._generator is None
     assert not component._warmed_up
 
     # Setup mocks

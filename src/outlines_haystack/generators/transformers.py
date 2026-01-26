@@ -18,7 +18,8 @@ from outlines_haystack.generators.utils import validate_choices
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from outlines.models import Transformers as outlines_Transformers
+    import outlines.models as outlines_models
+    from outlines.generator import SteerableGenerator
 
 
 class _BaseTransformersGenerator:
@@ -46,12 +47,36 @@ class _BaseTransformersGenerator:
         self.device = device
         self.model_kwargs = model_kwargs if model_kwargs is not None else {}
         self.tokenizer_kwargs = tokenizer_kwargs if tokenizer_kwargs is not None else {}
-        self.model: outlines_Transformers | None = None
-        self.generator = None
+        self.model: outlines_models.Transformers | None = None
+        self._generator: SteerableGenerator | None = None
+
+    @property
+    def generator(self) -> SteerableGenerator:
+        """Get the generator instance.
+
+        Returns:
+            The generator instance (callable that generates text/structured data).
+
+        Raises:
+            RuntimeError: If the generator is not initialized (warm_up not called).
+        """
+        if self._generator is None:
+            msg = "Generator not initialized. Call warm_up() before accessing the generator."
+            raise RuntimeError(msg)
+        return self._generator
+
+    @generator.setter
+    def generator(self, value: SteerableGenerator) -> None:
+        """Set the generator instance.
+
+        Args:
+            value: The generator instance to set.
+        """
+        self._generator = value
 
     @property
     def _warmed_up(self) -> bool:
-        return self.model is not None and self.generator is not None
+        return self.model is not None and self._generator is not None
 
     def _warm_up_generate_func(self) -> None:
         """For performance reasons, we should create the generator once."""
@@ -95,7 +120,7 @@ class TransformersTextGenerator(_BaseTransformersGenerator):
     """A component for generating text using a Transformers model."""
 
     def _warm_up_generate_func(self) -> None:
-        self.generator = Generator(self.model)
+        self.generator: SteerableGenerator = Generator(self.model)
 
     @component.output_types(replies=list[str])
     def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -170,7 +195,7 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
         self.whitespace_pattern = whitespace_pattern
 
     def _warm_up_generate_func(self) -> None:
-        self.generator = Generator(self.model, self.output_type)
+        self.generator: SteerableGenerator = Generator(self.model, self.output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -239,7 +264,7 @@ class TransformersChoiceGenerator(_BaseTransformersGenerator):
         self.choices = choices
 
     def _warm_up_generate_func(self) -> None:
-        self.generator = Generator(self.model, Choice(self.choices))
+        self.generator: SteerableGenerator = Generator(self.model, Choice(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
