@@ -72,7 +72,6 @@ def test_warm_up(
 
     # Setup mocks
     mock_hf_model = mock.MagicMock()
-    mock_hf_model.to.return_value = mock_hf_model  # Make .to() return itself
     mock_hf_tokenizer = mock.MagicMock()
     mock_auto_model.from_pretrained.return_value = mock_hf_model
     mock_auto_tokenizer.from_pretrained.return_value = mock_hf_tokenizer
@@ -84,8 +83,7 @@ def test_warm_up(
     assert component._warmed_up
     mock_auto_model.from_pretrained.assert_called_once_with(MODEL_NAME, device_map="cpu")
     mock_auto_tokenizer.from_pretrained.assert_called_once_with(MODEL_NAME)
-    mock_hf_model.to.assert_called_once_with("cpu")
-    mock_from_transformers.assert_called_once_with(mock_hf_model, mock_hf_tokenizer)
+    mock_from_transformers.assert_called_once_with(model=mock_hf_model, tokenizer_or_processor=mock_hf_tokenizer)
     assert component.model == mock_outlines_model
     # Verify Generator was called with the model and Choice type
     called_args = mock_transformers_generator.call_args

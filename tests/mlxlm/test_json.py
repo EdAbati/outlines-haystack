@@ -46,17 +46,6 @@ def test_init_default() -> None:
     assert component.adapter_path is None
     assert not component.lazy
     assert component.schema_object == user_schema_str
-    assert component.whitespace_pattern is None
-
-
-@pytest.mark.usefixtures("mock_from_mlxlm", "mock_mlxlm_generator", "mock_mlx_lm_load")
-def test_init_with_whitespace_pattern() -> None:
-    component = MLXLMJSONGenerator(
-        model_name=MODEL_NAME,
-        schema_object=User,
-        whitespace_pattern=r"[\n\t ]*",
-    )
-    assert component.whitespace_pattern == r"[\n\t ]*"
 
 
 def test_warm_up(
@@ -108,7 +97,6 @@ def test_to_dict() -> None:
         model_name=MODEL_NAME,
         schema_object=User,
         tokenizer_config={"eos_token": "<|endoftext|>", "trust_remote_code": True},
-        whitespace_pattern=r"[\n\t ]*",
     )
     expected_dict = {
         "type": "outlines_haystack.generators.mlxlm.MLXLMJSONGenerator",
@@ -119,7 +107,6 @@ def test_to_dict() -> None:
             "model_config": {},
             "adapter_path": None,
             "lazy": False,
-            "whitespace_pattern": r"[\n\t ]*",
         },
     }
     assert component.to_dict() == expected_dict
@@ -133,7 +120,6 @@ def test_from_dict() -> None:
             "model_name": MODEL_NAME,
             "schema_object": user_schema_str,
             "tokenizer_config": {"eos_token": "<|endoftext|>", "trust_remote_code": True},
-            "whitespace_pattern": r"[\n\t ]*",
         },
     }
     component = MLXLMJSONGenerator.from_dict(component_dict)
@@ -143,7 +129,6 @@ def test_from_dict() -> None:
     assert component.model_config == {}
     assert component.adapter_path is None
     assert not component.lazy
-    assert component.whitespace_pattern == r"[\n\t ]*"
 
 
 @pytest.mark.usefixtures("mock_from_mlxlm", "mock_mlxlm_generator", "mock_mlx_lm_load")

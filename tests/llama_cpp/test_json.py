@@ -45,7 +45,6 @@ def test_init_default() -> None:
     assert component.file_name == FILE_NAME
     assert component.schema_object == user_schema_str
     assert component.model_kwargs == {}
-    assert component.whitespace_pattern is None
 
 
 @pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
@@ -56,27 +55,14 @@ def test_init_with_string_schema() -> None:
 
 
 @pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
-def test_init_with_whitespace_pattern() -> None:
-    component = LlamaCppJSONGenerator(
-        repo_id=REPO_ID,
-        file_name=FILE_NAME,
-        schema_object=User,
-        whitespace_pattern=r"\s+",
-    )
-    assert component.whitespace_pattern == r"\s+"
-
-
-@pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")
 def test_init_with_kwargs() -> None:
     component = LlamaCppJSONGenerator(
         repo_id=REPO_ID,
         file_name=FILE_NAME,
         schema_object=User,
         model_kwargs={"n_gpu_layers": 4},
-        whitespace_pattern=r"\s+",
     )
     assert component.model_kwargs == {"n_gpu_layers": 4}
-    assert component.whitespace_pattern == r"\s+"
 
 
 def test_warm_up(
@@ -125,7 +111,6 @@ def test_to_dict() -> None:
         file_name=FILE_NAME,
         schema_object=User,
         model_kwargs={"n_gpu_layers": 4},
-        whitespace_pattern=r"\s+",
     )
     expected_dict = {
         "type": "outlines_haystack.generators.llama_cpp.LlamaCppJSONGenerator",
@@ -134,7 +119,6 @@ def test_to_dict() -> None:
             "file_name": FILE_NAME,
             "schema_object": user_schema_str,
             "model_kwargs": {"n_gpu_layers": 4},
-            "whitespace_pattern": r"\s+",
         },
     }
     assert component.to_dict() == expected_dict
@@ -149,7 +133,6 @@ def test_from_dict() -> None:
             "file_name": FILE_NAME,
             "schema_object": user_schema_str,
             "model_kwargs": {"n_gpu_layers": 4},
-            "whitespace_pattern": r"\s+",
         },
     }
     component = LlamaCppJSONGenerator.from_dict(component_dict)
@@ -157,7 +140,6 @@ def test_from_dict() -> None:
     assert component.file_name == FILE_NAME
     assert component.schema_object == user_schema_str
     assert component.model_kwargs == {"n_gpu_layers": 4}
-    assert component.whitespace_pattern == r"\s+"
 
 
 @pytest.mark.usefixtures("mock_from_llamacpp", "mock_llamacpp_generator", "mock_llama")

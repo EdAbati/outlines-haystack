@@ -51,20 +51,6 @@ def test_init_default() -> None:
     assert component.model_kwargs == {}
     assert component.tokenizer_kwargs == {}
     assert component.schema_object == user_schema_str
-    assert component.whitespace_pattern is None
-
-
-@pytest.mark.usefixtures(
-    "mock_from_transformers", "mock_transformers_generator", "mock_auto_model", "mock_auto_tokenizer"
-)
-def test_init_with_whitespace_pattern() -> None:
-    component = TransformersJSONGenerator(
-        model_name=MODEL_NAME,
-        schema_object=User,
-        device="cpu",
-        whitespace_pattern=r"[\n\t ]*",
-    )
-    assert component.whitespace_pattern == r"[\n\t ]*"
 
 
 @pytest.mark.usefixtures(
@@ -77,11 +63,9 @@ def test_init_with_kwargs() -> None:
         device="cpu",
         model_kwargs={"torch_dtype": "float16"},
         tokenizer_kwargs={"padding_side": "left"},
-        whitespace_pattern=r"[\n\t ]*",
     )
     assert component.model_kwargs == {"torch_dtype": "float16"}
     assert component.tokenizer_kwargs == {"padding_side": "left"}
-    assert component.whitespace_pattern == r"[\n\t ]*"
 
 
 def test_warm_up(
@@ -97,7 +81,6 @@ def test_warm_up(
 
     # Setup mocks
     mock_hf_model = mock.MagicMock()
-    mock_hf_model.to.return_value = mock_hf_model  # Make .to() return itself
     mock_hf_tokenizer = mock.MagicMock()
     mock_auto_model.from_pretrained.return_value = mock_hf_model
     mock_auto_tokenizer.from_pretrained.return_value = mock_hf_tokenizer
@@ -109,8 +92,7 @@ def test_warm_up(
     assert component._warmed_up
     mock_auto_model.from_pretrained.assert_called_once_with(MODEL_NAME, device_map="cpu")
     mock_auto_tokenizer.from_pretrained.assert_called_once_with(MODEL_NAME)
-    mock_hf_model.to.assert_called_once_with("cpu")
-    mock_from_transformers.assert_called_once_with(mock_hf_model, mock_hf_tokenizer)
+    mock_from_transformers.assert_called_once_with(model=mock_hf_model, tokenizer_or_processor=mock_hf_tokenizer)
     assert component.model == mock_outlines_model
     # Verify Generator was called with the model and the output type (Pydantic model)
     mock_transformers_generator.assert_called_once_with(mock_outlines_model, User)
@@ -136,7 +118,6 @@ def test_to_dict() -> None:
         model_name=MODEL_NAME,
         schema_object=User,
         device="cpu",
-        whitespace_pattern=r"[\n\t ]*",
     )
     expected_dict = {
         "type": "outlines_haystack.generators.transformers.TransformersJSONGenerator",
@@ -146,7 +127,6 @@ def test_to_dict() -> None:
             "schema_object": user_schema_str,
             "model_kwargs": {},
             "tokenizer_kwargs": {},
-            "whitespace_pattern": r"[\n\t ]*",
         },
     }
     assert component.to_dict() == expected_dict
@@ -162,7 +142,6 @@ def test_from_dict() -> None:
             "model_name": MODEL_NAME,
             "device": "cpu",
             "schema_object": user_schema_str,
-            "whitespace_pattern": r"[\n\t ]*",
         },
     }
     component = TransformersJSONGenerator.from_dict(component_dict)
@@ -171,7 +150,6 @@ def test_from_dict() -> None:
     assert component.device == "cpu"
     assert component.model_kwargs == {}
     assert component.tokenizer_kwargs == {}
-    assert component.whitespace_pattern == r"[\n\t ]*"
 
 
 @pytest.mark.usefixtures(
