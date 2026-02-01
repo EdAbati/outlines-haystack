@@ -1,23 +1,21 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union
 
 import mlx_lm
+import outlines
 from haystack import component, default_to_dict
-from outlines import Generator, from_mlxlm
 from outlines.types import Choice
+from pydantic import BaseModel
 
-from outlines_haystack.generators.base import _BaseLocalGenerator
+from outlines_haystack.generators._base import _BaseLocalGenerator
 from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from outlines.generator import SteerableGenerator
-    from pydantic import BaseModel
 
 
 class _BaseMLXLMGenerator(_BaseLocalGenerator):
@@ -58,7 +56,7 @@ class _BaseMLXLMGenerator(_BaseLocalGenerator):
             adapter_path=self.adapter_path,
             lazy=self.lazy,
         )
-        self.model = from_mlxlm(mlx_model, tokenizer)
+        self.model = outlines.from_mlxlm(mlx_model, tokenizer)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -77,7 +75,7 @@ class MLXLMTextGenerator(_BaseMLXLMGenerator):
     """A component for generating text using an MLXLM model."""
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model)
+        self.generator: SteerableGenerator = outlines.Generator(self.model)
 
     @component.output_types(replies=list[str])
     def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -110,7 +108,6 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
         model_config: Union[dict[str, Any], None] = None,
         adapter_path: Union[str, None] = None,
         lazy: bool = False,  # noqa: FBT001, FBT002
-        whitespace_pattern: Union[str, None] = None,
     ) -> None:
         """Initialize the MLXLM JSON generator component.
 
@@ -126,8 +123,6 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             adapter_path: Path to the LoRA adapters. If provided, applies LoRA layers to the model. Default: None.
             lazy: If False eval the model parameters to make sure they are loaded in memory before returning,
             otherwise they will be loaded when needed. Default: False
-            whitespace_pattern: Pattern to use for JSON syntactic whitespace (doesn't impact string literals).
-            See https://dottxt-ai.github.io/outlines/latest/reference/generation/json/ for more information.
         """
         _BaseMLXLMGenerator.__init__(
             self,
@@ -138,11 +133,10 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             lazy=lazy,
         )
 
-        self.schema_object, self.output_type = process_schema_object(schema_object, whitespace_pattern)
-        self.whitespace_pattern = whitespace_pattern
+        self.schema_object, self.output_type = process_schema_object(schema_object)
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, self.output_type)
+        self.generator: SteerableGenerator = outlines.Generator(self.model, self.output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -154,7 +148,6 @@ class MLXLMJSONGenerator(_BaseMLXLMGenerator):
             model_config=self.model_config,
             adapter_path=self.adapter_path,
             lazy=self.lazy,
-            whitespace_pattern=self.whitespace_pattern,
         )
 
     @component.output_types(structured_replies=list[str])
@@ -215,7 +208,7 @@ class MLXLMChoiceGenerator(_BaseMLXLMGenerator):
         self.choices = choices
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, Choice(self.choices))
+        self.generator: SteerableGenerator = outlines.Generator(self.model, Choice(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
