@@ -1,23 +1,21 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union
 
+import outlines
 from haystack import component, default_to_dict
 from llama_cpp import Llama
-from outlines import Generator, from_llamacpp
 from outlines.types import Choice
+from pydantic import BaseModel
 
-from outlines_haystack.generators.base import _BaseLocalGenerator
+from outlines_haystack.generators._base import _BaseLocalGenerator
 from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from outlines.generator import SteerableGenerator
-    from pydantic import BaseModel
 
 
 class _BaseLlamaCppGenerator(_BaseLocalGenerator):
@@ -49,7 +47,7 @@ class _BaseLlamaCppGenerator(_BaseLocalGenerator):
             filename=self.file_name,
             **self.model_kwargs,
         )
-        self.model = from_llamacpp(llamacpp_model)
+        self.model = outlines.from_llamacpp(llamacpp_model)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -66,7 +64,7 @@ class LlamaCppTextGenerator(_BaseLlamaCppGenerator):
     """A component for generating text using a LlamaCpp model."""
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model)
+        self.generator: SteerableGenerator = outlines.Generator(self.model)
 
     @component.output_types(replies=list[str])
     def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -97,7 +95,6 @@ class LlamaCppJSONGenerator(_BaseLlamaCppGenerator):
         file_name: str,
         schema_object: Union[str, type[BaseModel], Callable],
         model_kwargs: Union[dict[str, Any], None] = None,
-        whitespace_pattern: Union[str, None] = None,
     ) -> None:
         """Initialize the LlamaCpp JSON generator component.
 
@@ -110,8 +107,6 @@ class LlamaCppJSONGenerator(_BaseLlamaCppGenerator):
                 a JSON schema string, or a callable (function signature will be used as schema).
             model_kwargs: A dictionary that contains the keyword arguments to pass when loading the model. For more info
             see the [Llama-cpp docs](https://llama-cpp-python.readthedocs.io/en/latest/api-reference/#llama_cpp.Llama.__init__)
-            whitespace_pattern: Pattern to use for JSON syntactic whitespace (doesn't impact string literals).
-            See https://dottxt-ai.github.io/outlines/latest/reference/generation/json/ for more information.
         """
         _BaseLlamaCppGenerator.__init__(
             self,
@@ -120,11 +115,10 @@ class LlamaCppJSONGenerator(_BaseLlamaCppGenerator):
             model_kwargs=model_kwargs,
         )
 
-        self.schema_object, self.output_type = process_schema_object(schema_object, whitespace_pattern)
-        self.whitespace_pattern = whitespace_pattern
+        self.schema_object, self.output_type = process_schema_object(schema_object)
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, self.output_type)
+        self.generator: SteerableGenerator = outlines.Generator(self.model, self.output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -134,7 +128,6 @@ class LlamaCppJSONGenerator(_BaseLlamaCppGenerator):
             file_name=self.file_name,
             schema_object=self.schema_object,
             model_kwargs=self.model_kwargs,
-            whitespace_pattern=self.whitespace_pattern,
         )
 
     @component.output_types(structured_replies=list[str])
@@ -188,7 +181,7 @@ class LlamaCppChoiceGenerator(_BaseLlamaCppGenerator):
         self.choices = choices
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, Choice(self.choices))
+        self.generator: SteerableGenerator = outlines.Generator(self.model, Choice(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
