@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_from_transformers() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.transformers.from_transformers") as from_transformers:
+    with mock.patch("outlines_haystack.generators.transformers.outlines.from_transformers") as from_transformers:
         yield from_transformers
 
 
 @pytest.fixture
 def mock_transformers_generator() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.transformers.Generator") as transformers_generator:
+    with mock.patch("outlines_haystack.generators.transformers.outlines.Generator") as transformers_generator:
         yield transformers_generator
 
 

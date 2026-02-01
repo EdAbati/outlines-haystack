@@ -24,11 +24,11 @@ def mock_mlx_lm_load() -> Generator[mock.MagicMock]:
 
 @pytest.fixture
 def mock_from_mlxlm() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.mlxlm.from_mlxlm") as from_mlxlm:
+    with mock.patch("outlines_haystack.generators.mlxlm.outlines.from_mlxlm") as from_mlxlm:
         yield from_mlxlm
 
 
 @pytest.fixture
 def mock_mlxlm_generator() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.mlxlm.Generator") as generator:
+    with mock.patch("outlines_haystack.generators.mlxlm.outlines.Generator") as generator:
         yield generator

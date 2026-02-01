@@ -11,11 +11,11 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_from_openai() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.openai.from_openai") as from_openai:
+    with mock.patch("outlines_haystack.generators.openai.outlines.from_openai") as from_openai:
         yield from_openai
 
 
 @pytest.fixture
 def mock_openai_generator() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.openai.Generator") as openai_generator:
+    with mock.patch("outlines_haystack.generators.openai.outlines.Generator") as openai_generator:
         yield openai_generator

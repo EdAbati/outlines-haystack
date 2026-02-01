@@ -157,8 +157,8 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
 
     with (
         mock.patch.dict(os.environ, mock_os_environ),
-        mock.patch("outlines_haystack.generators.azure_openai.from_openai"),
-        mock.patch("outlines_haystack.generators.azure_openai.Generator"),
+        mock.patch("outlines_haystack.generators.azure_openai.outlines.from_openai"),
+        mock.patch("outlines_haystack.generators.azure_openai.outlines.Generator"),
         error_context,
     ):
         component = AzureOpenAITextGenerator.from_dict(component_dict)

@@ -75,7 +75,7 @@ def test_warm_up(
     component.warm_up()
 
     assert component._warmed_up
-    mock_auto_model.from_pretrained.assert_called_once_with(MODEL_NAME)
+    mock_auto_model.from_pretrained.assert_called_once_with(MODEL_NAME, device_map="cpu")
     mock_auto_tokenizer.from_pretrained.assert_called_once_with(MODEL_NAME)
     mock_hf_model.to.assert_called_once_with("cpu")
     mock_from_transformers.assert_called_once_with(mock_hf_model, mock_hf_tokenizer)

@@ -1,26 +1,24 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
 import os
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Union
 
 import openai
+import outlines
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
 from haystack.utils.http_client import init_http_client
-from outlines import Generator, from_openai
 from outlines.types import Choice
+from pydantic import BaseModel
 from typing_extensions import Self
 
 from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
-
     from outlines.models import OpenAI as outlines_OpenAI
-    from pydantic import BaseModel
 
 
 class _BaseOpenAIGenerator:
@@ -85,7 +83,7 @@ class _BaseOpenAIGenerator:
             http_client=init_http_client(self.http_client_kwargs, async_client=False),
         )
 
-        self.model: outlines_OpenAI = from_openai(self.client, model_name=self.model_name)
+        self.model: outlines_OpenAI = outlines.from_openai(self.client, model_name=self.model_name)
 
     def to_dict(self) -> dict[str, Any]:
         return default_to_dict(
@@ -157,7 +155,7 @@ class OpenAITextGenerator(_BaseOpenAIGenerator):
             default_query=default_query,
             http_client_kwargs=http_client_kwargs,
         )
-        self.generator = Generator(self.model)
+        self.generator = outlines.Generator(self.model)
 
     @component.output_types(replies=list[str])
     def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -231,7 +229,7 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
         )
 
         self.schema_object, output_type = process_schema_object(schema_object)
-        self.generator = Generator(self.model, output_type)
+        self.generator = outlines.Generator(self.model, output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""
@@ -320,7 +318,7 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
         )
         validate_choices(choices)
         self.choices = choices
-        self.generator = Generator(self.model, Choice(choices))
+        self.generator = outlines.Generator(self.model, Choice(choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""

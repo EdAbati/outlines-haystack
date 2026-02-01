@@ -14,13 +14,13 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_from_llamacpp() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.llama_cpp.from_llamacpp") as from_llamacpp:
+    with mock.patch("outlines_haystack.generators.llama_cpp.outlines.from_llamacpp") as from_llamacpp:
         yield from_llamacpp
 
 
 @pytest.fixture
 def mock_llamacpp_generator() -> Generator[mock.MagicMock]:
-    with mock.patch("outlines_haystack.generators.llama_cpp.Generator") as llamacpp_generator:
+    with mock.patch("outlines_haystack.generators.llama_cpp.outlines.Generator") as llamacpp_generator:
         yield llamacpp_generator
 
 
