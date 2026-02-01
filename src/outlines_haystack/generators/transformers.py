@@ -1,25 +1,23 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union
 
+import outlines
 from haystack import component, default_to_dict
-from outlines import Generator, from_transformers
 from outlines.types import Choice
+from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from outlines_haystack.generators.base import (
+from outlines_haystack.generators._base import (
     _BaseLocalGenerator,
 )
 from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from outlines.generator import SteerableGenerator
-    from pydantic import BaseModel
 
 
 class _BaseTransformersGenerator(_BaseLocalGenerator):
@@ -51,13 +49,13 @@ class _BaseTransformersGenerator(_BaseLocalGenerator):
 
     def _load_model(self) -> None:
         """Load the Transformers model and tokenizer."""
-        hf_model = AutoModelForCausalLM.from_pretrained(self.model_name, **self.model_kwargs)
+        model_kwargs = (
+            {**self.model_kwargs, "device_map": self.device} if self.device is not None else self.model_kwargs
+        )
+        hf_model = AutoModelForCausalLM.from_pretrained(self.model_name, **model_kwargs)
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, **self.tokenizer_kwargs)
 
-        if self.device is not None:
-            hf_model = hf_model.to(self.device)
-
-        self.model = from_transformers(hf_model, tokenizer)
+        self.model = outlines.from_transformers(model=hf_model, tokenizer_or_processor=tokenizer)
 
     def to_dict(self) -> dict[str, Any]:
         return default_to_dict(
@@ -74,7 +72,7 @@ class TransformersTextGenerator(_BaseTransformersGenerator):
     """A component for generating text using a Transformers model."""
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model)
+        self.generator: SteerableGenerator = outlines.Generator(self.model)
 
     @component.output_types(replies=list[str])
     def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
@@ -99,14 +97,13 @@ class TransformersTextGenerator(_BaseTransformersGenerator):
 class TransformersJSONGenerator(_BaseTransformersGenerator):
     """A component for generating structured data using an Transformers model."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         model_name: str,
         schema_object: Union[str, type[BaseModel], Callable],
         device: Union[str, None] = None,
         model_kwargs: Union[dict[str, Any], None] = None,
         tokenizer_kwargs: Union[dict[str, Any], None] = None,
-        whitespace_pattern: Union[str, None] = None,
     ) -> None:
         """Initialize the Transformers JSON generator component.
 
@@ -122,8 +119,6 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
             when loading the model.
             tokenizer_kwargs: A dictionary that contains the keyword arguments to pass to the `from_pretrained` method
             when loading the tokenizer.
-            whitespace_pattern: Pattern to use for JSON syntactic whitespace (doesn't impact string literals).
-            See https://dottxt-ai.github.io/outlines/latest/reference/generation/json/ for more information.
         """
         _BaseTransformersGenerator.__init__(
             self,
@@ -133,11 +128,10 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
             tokenizer_kwargs=tokenizer_kwargs,
         )
 
-        self.schema_object, self.output_type = process_schema_object(schema_object, whitespace_pattern)
-        self.whitespace_pattern = whitespace_pattern
+        self.schema_object, self.output_type = process_schema_object(schema_object)
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, self.output_type)
+        self.generator: SteerableGenerator = outlines.Generator(self.model, self.output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""
@@ -148,7 +142,6 @@ class TransformersJSONGenerator(_BaseTransformersGenerator):
             device=self.device,
             model_kwargs=self.model_kwargs,
             tokenizer_kwargs=self.tokenizer_kwargs,
-            whitespace_pattern=self.whitespace_pattern,
         )
 
     @component.output_types(structured_replies=list[str])
@@ -207,7 +200,7 @@ class TransformersChoiceGenerator(_BaseTransformersGenerator):
         self.choices = choices
 
     def _warm_up_generate_func(self) -> None:
-        self.generator: SteerableGenerator = Generator(self.model, Choice(self.choices))
+        self.generator: SteerableGenerator = outlines.Generator(self.model, Choice(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this component to a dictionary."""

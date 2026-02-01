@@ -3,16 +3,12 @@
 # SPDX-License-Identifier: MIT
 """Base classes and mixins for Outlines-Haystack generators."""
 
-from __future__ import annotations
-
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from haystack import component, default_from_dict
-
-if TYPE_CHECKING:
-    from outlines.generator import SteerableGenerator
-    from typing_extensions import Self
+from outlines.generator import SteerableGenerator
+from typing_extensions import Self
 
 
 class _BaseLocalGenerator:
