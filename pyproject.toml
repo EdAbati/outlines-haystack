@@ -9,30 +9,30 @@ description = 'Use `outlines` generators with Haystack.'
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 keywords = [
-  "nlp",
-  "machine-learning",
-  "ai",
-  "haystack",
-  "llm",
-  "outlines",
-  "structured-generation",
-  "generative-ai",
+    "nlp",
+    "machine-learning",
+    "ai",
+    "haystack",
+    "llm",
+    "outlines",
+    "structured-generation",
+    "generative-ai",
 ]
 authors = [{ name = "Edoardo Abati" }]
 classifiers = [
-  "License :: OSI Approved :: MIT License",
-  "Development Status :: 4 - Beta",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "haystack-ai>=2.13.0",
-  "outlines>=1.0.0,<2.0.0",
+    "haystack-ai>=2.19.0",
+    "outlines>=1.0.0,<2.0.0",
 ]
 [project.optional-dependencies]
 mlxlm = ["outlines[mlxlm]; sys_platform == 'darwin'"]
@@ -53,7 +53,7 @@ Source = "https://github.com/EdAbati/outlines-haystack"
 # Installing from source might fail due to missing dependencies (CMake fails with "OpenMP not found")
 [tool.uv.sources]
 llama-cpp-python = [
-  { index = "llama-cpp-python-macos", marker = "sys_platform == 'darwin'" },
+    { index = "llama-cpp-python-macos", marker = "sys_platform == 'darwin'" },
 ]
 [[tool.uv.index]]
 name = "llama-cpp-python-macos"
@@ -62,30 +62,31 @@ explicit = true
 
 [dependency-groups]
 core = [
-  "outlines-haystack[llama-cpp,openai,transformers,mlxlm]",
+    "outlines-haystack[llama-cpp,openai,transformers,mlxlm]",
 ]
 lint = [
-  "ruff",
+    "ruff",
 ]
 testing = [
-  "coverage[toml]>=6.5",
-  "pytest",
+    "coverage[toml]>=6.5",
+    "pytest",
 ]
 typing = [
-  "mypy>=1.0.0",
+    "mypy>=1.0.0",
 ]
 dev = [
-  "notebook",
-  "poethepoet",
-  "pre-commit",
-  { include-group = "testing" },
-  { include-group = "core" },
-  { include-group = "lint" },
-  { include-group = "typing" },
+    "notebook",
+    "ipywidgets",
+    "poethepoet",
+    "pre-commit",
+    { include-group = "testing" },
+    { include-group = "core" },
+    { include-group = "lint" },
+    { include-group = "typing" },
 ]
 dev-macos = [
-  { include-group = "dev" },
-  "outlines-haystack[mlxlm]",
+    { include-group = "dev" },
+    "outlines-haystack[mlxlm]",
 ]
 
 [tool.uv.dependency-groups]
@@ -94,7 +95,7 @@ dev = { requires-python = "!=3.11" }
 # Unit tests and Coverage
 [tool.pytest.ini_options]
 testpaths = [
-  "tests",
+    "tests",
 ]
 [tool.coverage.run]
 source_pkgs = ["outlines_haystack", "tests"]
@@ -102,15 +103,15 @@ branch = true
 parallel = true
 [tool.coverage.paths]
 outlines_haystack = [
-  "src/outlines_haystack",
-  "*/outlines-haystack/src/outlines_haystack",
+    "src/outlines_haystack",
+    "*/outlines-haystack/src/outlines_haystack",
 ]
 tests = ["tests", "*/outlines-haystack/tests"]
 [tool.coverage.report]
 exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
+    "no cov",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
 ]
 
 # Format/Linting Tools
@@ -122,19 +123,19 @@ extend-include = ["*.ipynb"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  # Missing trailing comma (conflict with ruff-format)
-  "COM812",
-  # No required doctstring for modules, packages
-  "D100",
-  "D104",
-  # No future annotations
-  "FA100",
-  # Ignore checks for possible passwords
-  "S105",
-  "S106",
-  "S107",
-  # Haystack doesn't support | for Union types
-  "UP007",
+    # Missing trailing comma (conflict with ruff-format)
+    "COM812",
+    # No required doctstring for modules, packages
+    "D100",
+    "D104",
+    # No future annotations
+    "FA100",
+    # Ignore checks for possible passwords
+    "S105",
+    "S106",
+    "S107",
+    # Haystack doesn't support | for Union types
+    "UP007",
 ]
 
 [tool.ruff.lint.isort]
@@ -163,8 +164,8 @@ test-cov = { cmd = "coverage run -m pytest", help = "Runs all unit tests with co
 cov-combine = { cmd = "coverage combine", help = "Combines all coverage data files" }
 cov-report = { cmd = "coverage report", help = "Generates a coverage report" }
 fmt = { sequence = [
-  "_fmt_format",
-  "_fmt_lint",
+    "_fmt_format",
+    "_fmt_lint",
 ], ignore_fail = "return_non_zero", help = "Checks code formatting and linting" }
 _fmt_lint = { cmd = "ruff check . --fix", help = "Lint the codebase" }
 _fmt_format = { cmd = "ruff format .", help = "Formats the codebase" }
