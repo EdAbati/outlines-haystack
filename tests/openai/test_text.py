@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
 import os
 from contextlib import nullcontext
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -11,13 +13,23 @@ from haystack import Pipeline
 from haystack.utils import Secret
 
 from outlines_haystack.generators.openai import OpenAITextGenerator
-from tests.utils import mock_text_func
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 MODEL_NAME = "gpt-4o-mini"
 
 
+@pytest.fixture
+def mock_openai_generator_text(mock_openai_generator: mock.MagicMock) -> Generator[mock.MagicMock]:
+    mock_generator_obj = mock.MagicMock()
+    mock_generator_obj.return_value = "Hello world."
+    mock_openai_generator.return_value = mock_generator_obj
+    return mock_generator_obj
+
+
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
-def test_init_default() -> None:
+def test_init_default(mock_from_openai: mock.MagicMock, mock_openai_generator: mock.MagicMock) -> None:
     component = OpenAITextGenerator(model_name=MODEL_NAME)
     assert component.model_name == MODEL_NAME
     assert component.api_key.resolve_value() == "test-api-key"
@@ -28,10 +40,11 @@ def test_init_default() -> None:
     assert component.max_retries == 5
     assert component.default_headers is None
     assert component.default_query is None
-    assert component.generation_kwargs == {}
-    assert component.openai_config is None
+    mock_from_openai.assert_called_once()
+    mock_openai_generator.assert_called_once()
 
 
+@pytest.mark.usefixtures("mock_from_openai", "mock_openai_generator")
 def test_init_params() -> None:
     component = OpenAITextGenerator(
         model_name=MODEL_NAME,
@@ -39,7 +52,6 @@ def test_init_params() -> None:
         timeout=60,
         max_retries=10,
         default_headers={"test-header": "test-value"},
-        generation_kwargs={"temperature": 0.5},
     )
     assert component.model_name == MODEL_NAME
     assert component.api_key.resolve_value() == "test-api-key"
@@ -49,8 +61,6 @@ def test_init_params() -> None:
     assert component.max_retries == 10
     assert component.default_headers == {"test-header": "test-value"}
     assert component.default_query is None
-    assert component.generation_kwargs == {"temperature": 0.5}
-    assert component.openai_config.temperature == 0.5
 
 
 def test_init_value_error() -> None:
@@ -58,6 +68,7 @@ def test_init_value_error() -> None:
         OpenAITextGenerator(model_name=MODEL_NAME)
 
 
+@pytest.mark.usefixtures("mock_from_openai", "mock_openai_generator")
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_to_dict() -> None:
     component = OpenAITextGenerator(
@@ -78,7 +89,6 @@ def test_to_dict() -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
-            "generation_kwargs": {},
         },
     }
 
@@ -105,7 +115,6 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             "max_retries": 10,
             "default_headers": {"test-header": "test-value"},
             "default_query": None,
-            "generation_kwargs": {"temperature": 0.5},
         },
     }
     error_context = (
@@ -114,7 +123,12 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
         else nullcontext()
     )
 
-    with mock.patch.dict(os.environ, mock_os_environ), error_context:
+    with (
+        mock.patch.dict(os.environ, mock_os_environ),
+        mock.patch("outlines_haystack.generators.openai.outlines.from_openai"),
+        mock.patch("outlines_haystack.generators.openai.outlines.Generator"),
+        error_context,
+    ):
         component = OpenAITextGenerator.from_dict(component_dict)
 
         if mock_os_environ:
@@ -123,9 +137,9 @@ def test_from_dict(mock_os_environ: dict[str, str]) -> None:
             assert component.timeout == 60
             assert component.max_retries == 10
             assert component.default_headers == {"test-header": "test-value"}
-            assert component.openai_config.temperature == 0.5
 
 
+@pytest.mark.usefixtures("mock_from_openai", "mock_openai_generator")
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_pipeline() -> None:
     component = OpenAITextGenerator(model_name=MODEL_NAME)
@@ -136,13 +150,11 @@ def test_pipeline() -> None:
     assert p.to_dict() == q.to_dict()
 
 
+@pytest.mark.usefixtures("mock_from_openai", "mock_openai_generator_text")
 @mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
 def test_run() -> None:
     component = OpenAITextGenerator(model_name=MODEL_NAME)
-
-    with mock.patch("outlines_haystack.generators.openai.generate.text") as mock_generate:
-        mock_generate.return_value = mock_text_func
-        response = component.run("How are you?")
+    response = component.run("How are you?")
 
     # check that the component returns the correct ChatMessage response
     assert isinstance(response, dict)
@@ -150,3 +162,25 @@ def test_run() -> None:
     assert isinstance(response["replies"], list)
     assert len(response["replies"]) == 1
     assert all(isinstance(reply, str) for reply in response["replies"])
+    assert response["replies"][0] == "Hello world."
+
+
+@pytest.mark.usefixtures("mock_from_openai", "mock_openai_generator")
+@mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
+def test_run_empty_prompt() -> None:
+    component = OpenAITextGenerator(model_name=MODEL_NAME)
+    response = component.run("")
+
+    assert response == {"replies": []}
+
+
+@pytest.mark.usefixtures("mock_from_openai")
+@mock.patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"})
+def test_run_with_generation_kwargs(mock_openai_generator_text: mock.MagicMock) -> None:
+    component = OpenAITextGenerator(model_name=MODEL_NAME)
+    generation_kwargs = {"temperature": 0.8, "max_tokens": 200, "seed": 999}
+    response = component.run("How are you?", generation_kwargs=generation_kwargs)
+
+    # Verify the generator was called with the correct kwargs
+    mock_openai_generator_text.assert_called_once_with("How are you?", **generation_kwargs)
+    assert response["replies"][0] == "Hello world."

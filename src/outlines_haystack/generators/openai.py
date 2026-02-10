@@ -3,17 +3,22 @@
 # SPDX-License-Identifier: MIT
 
 import os
-from collections.abc import Mapping
-from typing import Any, Union
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, Union
 
+import openai
+import outlines
 from haystack import component, default_from_dict, default_to_dict
 from haystack.utils import Secret, deserialize_secrets_inplace
-from outlines import generate, models
+from haystack.utils.http_client import init_http_client
+from outlines.types import Choice
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from outlines_haystack.generators.openai_utils import set_openai_config
-from outlines_haystack.generators.utils import schema_object_to_json_str, validate_choices
+from outlines_haystack.generators.utils import process_schema_object, validate_choices
+
+if TYPE_CHECKING:
+    from outlines.models import OpenAI as outlines_OpenAI
 
 
 class _BaseOpenAIGenerator:
@@ -28,7 +33,7 @@ class _BaseOpenAIGenerator:
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI generator.
 
@@ -47,9 +52,9 @@ class _BaseOpenAIGenerator:
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the OpenAI API client.
             default_query: The default query parameters to use in the OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client`or
+            `httpx.AsyncClient`. For more information, see the [HTTPX documentation](https://www.python-httpx.org/api/#client).
+
         """
         self.model_name = model_name
         self.api_key = api_key
@@ -58,20 +63,16 @@ class _BaseOpenAIGenerator:
         self.base_url = base_url
 
         # Same defaults as in Haystack
-        # https://github.com/deepset-ai/haystack/blob/3ef8c081be460a91f3c5c29899a6ee6bbc429caa/haystack/components/generators/openai.py#L114-L117
+        # https://github.com/deepset-ai/haystack/blob/6e5c8cdbc04fc06640af433b6bef5201cd0b93bb/haystack/components/generators/openai.py#L130-L133
         self.timeout = timeout or float(os.environ.get("OPENAI_TIMEOUT", "30"))
         self.max_retries = max_retries or int(os.environ.get("OPENAI_MAX_RETRIES", "5"))
 
         self.default_headers = default_headers
         self.default_query = default_query
+        self.http_client_kwargs = http_client_kwargs
 
-        self.generation_kwargs = generation_kwargs if generation_kwargs is not None else {}
-        self.openai_config = set_openai_config(generation_kwargs)
-
-        self.model = models.openai(
-            self.model_name,
-            self.openai_config,
-            api_key=self.api_key.resolve_value(),
+        self.client = openai.OpenAI(
+            api_key=api_key.resolve_value(),
             organization=self.organization,
             project=self.project,
             base_url=self.base_url,
@@ -79,7 +80,10 @@ class _BaseOpenAIGenerator:
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
+            http_client=init_http_client(self.http_client_kwargs, async_client=False),
         )
+
+        self.model: outlines_OpenAI = outlines.from_openai(self.client, model_name=self.model_name)
 
     def to_dict(self) -> dict[str, Any]:
         return default_to_dict(
@@ -93,7 +97,6 @@ class _BaseOpenAIGenerator:
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
     @classmethod
@@ -106,41 +109,9 @@ class _BaseOpenAIGenerator:
 class OpenAITextGenerator(_BaseOpenAIGenerator):
     """A component that generates text using the OpenAI API."""
 
-    @component.output_types(replies=list[str])
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, list[str]]:
-        """Run the generation component based on a prompt.
-
-        Args:
-            prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
-        """
-        if not prompt:
-            return {"replies": []}
-
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_text_func = generate.text(self.model)
-        answer = generate_text_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
-        return {"replies": [answer]}
-
-
-@component
-class OpenAIJSONGenerator(_BaseOpenAIGenerator):
-    """A component that generates structured data using the OpenAI API."""
-
     def __init__(  # noqa: PLR0913
         self,
         model_name: str,
-        schema_object: Union[str, BaseModel, callable],
         api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
         organization: Union[str, None] = None,
         project: Union[str, None] = None,
@@ -149,13 +120,12 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
-        """Initialize the OpenAI JSON generator.
+        """Initialize the OpenAI text generator.
 
         Args:
             model_name: The name of the OpenAI model to use.
-            schema_object: The schema object to use for the OpenAI API.
             api_key: The OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
             organization: The organization ID to use for the OpenAI API. If not provided, uses `OPENAI_ORG_ID`
             environment variable.
@@ -169,9 +139,81 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the OpenAI API client.
             default_query: The default query parameters to use in the OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
+        """
+        super(OpenAITextGenerator, self).__init__(  # noqa: UP008
+            model_name=model_name,
+            api_key=api_key,
+            organization=organization,
+            project=project,
+            base_url=base_url,
+            timeout=timeout,
+            max_retries=max_retries,
+            default_headers=default_headers,
+            default_query=default_query,
+            http_client_kwargs=http_client_kwargs,
+        )
+        self.generator = outlines.Generator(self.model)
+
+    @component.output_types(replies=list[str])
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
+        """Run the generation component based on a prompt.
+
+        Args:
+            prompt: The prompt to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
+        """
+        if not prompt:
+            return {"replies": []}
+
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
+        return {"replies": [answer]}
+
+
+@component
+class OpenAIJSONGenerator(_BaseOpenAIGenerator):
+    """A component that generates structured data using the OpenAI API."""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        model_name: str,
+        schema_object: Union[str, type[BaseModel], Callable],
+        api_key: Secret = Secret.from_env_var("OPENAI_API_KEY"),  # noqa: B008
+        organization: Union[str, None] = None,
+        project: Union[str, None] = None,
+        base_url: Union[str, None] = None,
+        timeout: Union[int, None] = None,
+        max_retries: Union[int, None] = None,
+        default_headers: Union[Mapping[str, str], None] = None,
+        default_query: Union[Mapping[str, str], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
+    ) -> None:
+        """Initialize the OpenAI JSON generator.
+
+        Args:
+            model_name: The name of the OpenAI model to use.
+            schema_object: The schema object to use for structured generation. Can be a Pydantic model class,
+                a JSON schema string, or a callable (function signature will be used as schema).
+            api_key: The OpenAI API key. If not provided, uses the `OPENAI_API_KEY` environment variable.
+            organization: The organization ID to use for the OpenAI API. If not provided, uses `OPENAI_ORG_ID`
+            environment variable.
+            project: The project ID to use for the OpenAI API. If not provided, uses `OPENAI_PROJECT_ID`
+            environment variable.
+            base_url: The base URL to use for the OpenAI API. If not provided, uses `OPENAI_BASE_URL` environment
+            variable.
+            timeout: The timeout to use for the OpenAI API. If not provided, uses `OPENAI_TIMEOUT` environment variable.
+            Defaults to 30.0.
+            max_retries: The maximum number of retries to use for the OpenAI API. If not provided, uses
+            `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
+            default_headers: The default headers to use in the OpenAI API client.
+            default_query: The default query parameters to use in the OpenAI API client.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
         """
         super(OpenAIJSONGenerator, self).__init__(  # noqa: UP008
             model_name=model_name,
@@ -183,9 +225,11 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
             max_retries=max_retries,
             default_headers=default_headers,
             default_query=default_query,
-            generation_kwargs=generation_kwargs,
+            http_client_kwargs=http_client_kwargs,
         )
-        self.schema_object = schema_object_to_json_str(schema_object)
+
+        self.schema_object, output_type = process_schema_object(schema_object)
+        self.generator = outlines.Generator(self.model, output_type)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""
@@ -201,33 +245,22 @@ class OpenAIJSONGenerator(_BaseOpenAIGenerator):
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
-    @component.output_types(structured_replies=list[dict[str, Any]])
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, list[dict[str, Any]]]:
+    @component.output_types(structured_replies=list[str])
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
         """
         if not prompt:
-            return {"replies": []}
+            return {"structured_replies": []}
 
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_func = generate.json(self.model, schema_object=self.schema_object)
-        answer = generate_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"structured_replies": [answer]}
 
 
@@ -247,7 +280,7 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
         max_retries: Union[int, None] = None,
         default_headers: Union[Mapping[str, str], None] = None,
         default_query: Union[Mapping[str, str], None] = None,
-        generation_kwargs: Union[dict[str, Any], None] = None,
+        http_client_kwargs: Union[dict[str, Any], None] = None,
     ) -> None:
         """Initialize the OpenAI choice generator.
 
@@ -267,9 +300,9 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
             `OPENAI_MAX_RETRIES` environment variable. Defaults to 5.
             default_headers: The default headers to use in the OpenAI API client.
             default_query: The default query parameters to use in the OpenAI API client.
-            generation_kwargs: Additional parameters that outlines allows to pass to the OpenAI API.
-            See https://dottxt-ai.github.io/outlines/latest/api/models/#outlines.models.openai.OpenAIConfig for the
-            available parameters. If None, defaults to an empty dictionary.
+            http_client_kwargs: A dictionary of keyword arguments to configure a custom `httpx.Client` or
+            `httpx.AsyncClient`.
+
         """
         super(OpenAIChoiceGenerator, self).__init__(  # noqa: UP008
             model_name=model_name,
@@ -281,10 +314,11 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
             max_retries=max_retries,
             default_headers=default_headers,
             default_query=default_query,
-            generation_kwargs=generation_kwargs,
+            http_client_kwargs=http_client_kwargs,
         )
         validate_choices(choices)
         self.choices = choices
+        self.generator = outlines.Generator(self.model, Choice(choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the component to a dictionary."""
@@ -300,31 +334,20 @@ class OpenAIChoiceGenerator(_BaseOpenAIGenerator):
             max_retries=self.max_retries,
             default_headers=self.default_headers,
             default_query=self.default_query,
-            generation_kwargs=self.generation_kwargs,
         )
 
     @component.output_types(choice=str)
-    def run(
-        self,
-        prompt: str,
-        max_tokens: Union[int, None] = None,
-        stop_at: Union[str, list[str], None] = None,
-        seed: Union[int, None] = None,
-    ) -> dict[str, str]:
+    def run(self, prompt: str, generation_kwargs: dict[str, Any] | None = None) -> dict[str, str]:
         """Run the generation component based on a prompt.
 
         Args:
             prompt: The prompt to use for generation.
-            max_tokens: The maximum number of tokens to generate.
-            stop_at: A string or list of strings after which to stop generation.
-            seed: The seed to use for generation.
+            generation_kwargs: The arguments to use for generation. See [outlines docs](https://dottxt-ai.github.io/outlines/latest/features/models/openai/#inference-arguments)
+                for more information.
         """
         if not prompt:
-            return {"replies": []}
+            return {"choice": ""}
 
-        if seed is not None:
-            self.model.config.seed = seed
-
-        generate_func = generate.choice(self.model, choices=self.choices)
-        answer = generate_func(prompt, max_tokens=max_tokens, stop_at=stop_at)
+        generation_kwargs = generation_kwargs or {}
+        answer = self.generator(prompt, **generation_kwargs)
         return {"choice": answer}

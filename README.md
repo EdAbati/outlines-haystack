@@ -54,7 +54,6 @@ This library currently supports the following generators:
 ### JSON Generation
 
 ```python
->>> from enum import Enum
 >>> from pydantic import BaseModel
 >>> from outlines_haystack.generators.transformers import TransformersJSONGenerator
 
@@ -66,11 +65,10 @@ This library currently supports the following generators:
 ...     model_name="microsoft/Phi-3-mini-4k-instruct",
 ...     schema_object=User,
 ...     device="cuda",
-...     sampling_algorithm_kwargs={"temperature": 0.5},
 ... )
 >>> generator.warm_up()
 >>> generator.run(prompt="Create a user profile with the fields name, last_name")
-{'structured_replies': [{'name': 'John', 'last_name': 'Doe'}]}
+{'structured_replies': ['{"name": "John", "last_name": "Doe"}']}
 ```
 
 ### Choice Generation
@@ -82,7 +80,6 @@ This library currently supports the following generators:
 ...     model_name="microsoft/Phi-3-mini-4k-instruct",
 ...     choices=["Positive", "Negative"],
 ...     device="cuda",
-...     sampling_algorithm_kwargs={"temperature": 0.5},
 ... )
 >>> generator.warm_up()
 >>> generator.run(prompt="Classify the following statement: 'I love pizza'")
@@ -101,11 +98,10 @@ This library currently supports the following generators:
 >>> generator = TransformersTextGenerator(
 ...     model_name="microsoft/Phi-3-mini-4k-instruct",
 ...     device="cuda",
-...     sampling_algorithm_kwargs={"temperature": 0.5},
 ... )
 >>> generator.warm_up()
 >>> generator.run(prompt="What is the capital of Italy?")
-{'replies': ['\n\n# Answer\nThe capital of Italy is Rome.']}
+{'replies': ['The capital of Italy is Rome.']}
 ```
 
 ## License
