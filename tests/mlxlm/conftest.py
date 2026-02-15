@@ -11,6 +11,22 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+# Check if mlx_lm is available (only on macOS)
+try:
+    import mlx_lm  # noqa: F401
+
+    HAS_MLX = True
+except ImportError:
+    HAS_MLX = False
+
+
+def pytest_collection_modifyitems(items: list) -> None:
+    """Skip mlxlm tests if mlx_lm is not available."""
+    if not HAS_MLX:
+        skip_mlx = pytest.mark.skip(reason="mlx_lm only available on macOS")
+        for item in items:
+            item.add_marker(skip_mlx)
+
 
 @pytest.fixture
 def mock_mlx_lm_load() -> Generator[mock.MagicMock]:

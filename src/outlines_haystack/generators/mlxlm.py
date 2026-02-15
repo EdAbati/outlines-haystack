@@ -5,14 +5,17 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union
 
-import mlx_lm
 import outlines
 from haystack import component, default_to_dict
+from haystack.lazy_imports import LazyImport
 from outlines.types import Choice
 from pydantic import BaseModel
 
 from outlines_haystack.generators._base import _BaseLocalGenerator
 from outlines_haystack.generators.utils import process_schema_object, validate_choices
+
+with LazyImport("Install outlines-haystack[mlxlm]") as mlx_lm_import:
+    import mlx_lm
 
 if TYPE_CHECKING:
     from outlines.generator import SteerableGenerator
@@ -49,6 +52,7 @@ class _BaseMLXLMGenerator(_BaseLocalGenerator):
 
     def _load_model(self) -> None:
         """Load the MLXLM model."""
+        mlx_lm_import.check()
         mlx_model, tokenizer = mlx_lm.load(
             self.model_name,
             tokenizer_config=self.tokenizer_config,
