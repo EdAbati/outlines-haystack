@@ -78,5 +78,5 @@ jobs:
       - name: Run unit tests with minimum Haystack version
         run: |
           source .venv/bin/activate
-          poe test
+          pytest
         shell: bash
