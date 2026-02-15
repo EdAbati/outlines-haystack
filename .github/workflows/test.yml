@@ -16,7 +16,7 @@ env:
   UV_SYSTEM_PYTHON: "true"
 
 jobs:
-  run:
+  unit-tests:
     name: Python ${{ matrix.python-version }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -42,10 +42,39 @@ jobs:
         with:
           version: "latest"
 
-      # - name: Run mypy types checking
-      #   run: uv run --python "${{ matrix.python-version }}" task typing
-      #   shell: bash
-
       - name: Run unit tests
         run: uv run --python "${{ matrix.python-version }}" poe test-cov
+        shell: bash
+
+  min-haystack-version:
+    name: Min Haystack (2.19.0) - Python 3.12 on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || 'Linux' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Create virtual environment and install with minimum Haystack version
+        run: |
+          uv venv
+          uv pip install -e ".[core,testing]"
+          uv pip install "haystack-ai==2.19.0"
+        shell: bash
+
+      - name: Run unit tests with minimum Haystack version
+        run: uv run poe test
         shell: bash

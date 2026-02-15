@@ -98,7 +98,7 @@ testpaths = [
     "tests",
 ]
 filterwarnings = [
-    # Suppress SWIG deprecation warnings from C/C++ extension modules (llama-cpp-python, mlx, etc.)
+    # Suppress SWIG deprecation warnings from C/C++ extension modules (llama-cpp-python, etc.)
     "ignore:builtin type Swig.*has no __module__ attribute:DeprecationWarning:importlib._bootstrap",
 ]
 [tool.coverage.run]
