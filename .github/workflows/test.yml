@@ -67,7 +67,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
-          activate-environment: "true"
 
       - name: Create virtual environment and install with minimum Haystack version
         run: |
@@ -79,5 +78,5 @@ jobs:
       - name: Run unit tests with minimum Haystack version
         run: |
           source .venv/bin/activate
-          uv run poe test
+          poe test
         shell: bash
