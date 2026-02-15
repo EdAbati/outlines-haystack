@@ -71,7 +71,7 @@ jobs:
       - name: Create virtual environment and install with minimum Haystack version
         run: |
           uv venv --python "${{ matrix.python-version }}"
-          uv pip install -e ".[core,testing]"
+          uv pip install -e . --group core --group testing
           uv pip install "haystack-ai==2.19.0"
         shell: bash
 
