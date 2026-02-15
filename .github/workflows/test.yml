@@ -67,14 +67,17 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
+          activate-environment: "true"
 
       - name: Create virtual environment and install with minimum Haystack version
         run: |
-          uv venv
+          uv venv --python "${{ matrix.python-version }}"
           uv pip install -e ".[core,testing]"
           uv pip install "haystack-ai==2.19.0"
         shell: bash
 
       - name: Run unit tests with minimum Haystack version
-        run: uv run poe test
+        run: |
+          source .venv/bin/activate
+          uv run poe test
         shell: bash
