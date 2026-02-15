@@ -97,6 +97,10 @@ dev = { requires-python = "!=3.11" }
 testpaths = [
     "tests",
 ]
+filterwarnings = [
+    # Suppress SWIG deprecation warnings from C/C++ extension modules (llama-cpp-python, mlx, etc.)
+    "ignore:builtin type Swig.*has no __module__ attribute:DeprecationWarning:importlib._bootstrap",
+]
 [tool.coverage.run]
 source_pkgs = ["outlines_haystack", "tests"]
 branch = true
