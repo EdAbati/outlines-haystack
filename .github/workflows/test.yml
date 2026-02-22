@@ -44,7 +44,6 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --group core --group testing --python ${{ matrix.python-version }}
-          uv pip list
 
       - name: Run unit tests
         run: uv run coverage run -m pytest
@@ -76,8 +75,7 @@ jobs:
       - name: Install with minimum Haystack version
         run: |
           uv sync --group core --group testing --python ${{ matrix.python-version }}
-          uv pip install "haystack-ai==${{ matrix.min-haystack-version }}"
-          uv pip list
+          uv add "haystack-ai==${{ matrix.min-haystack-version }}"
         shell: bash
 
       - name: Run unit tests with minimum Haystack version
