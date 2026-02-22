@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "outlines-haystack"
-version = "0.2.5"
+version = "1.0.0"
 description = 'Use `outlines` generators with Haystack.'
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
