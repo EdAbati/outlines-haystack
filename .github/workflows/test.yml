@@ -13,7 +13,6 @@ concurrency:
 env:
   PYTHONUNBUFFERED: "1"
   FORCE_COLOR: "1"
-  UV_SYSTEM_PYTHON: "true"
 
 jobs:
   unit-tests:
@@ -44,11 +43,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install "." --group core --group testing
+          uv sync --group core --group testing --python ${{ matrix.python-version }}
           uv pip list
 
       - name: Run unit tests
-        run: coverage run -m pytest
+        run: uv run coverage run -m pytest
         shell: bash
 
   min-haystack-version:
@@ -74,15 +73,13 @@ jobs:
         with:
           version: "latest"
 
-      - name: Create virtual environment and install with minimum Haystack version
+      - name: Install with minimum Haystack version
         run: |
-          uv venv --python "${{ matrix.python-version }}"
-          uv pip install -e . --group core --group testing
+          uv sync --group core --group testing --python ${{ matrix.python-version }}
           uv pip install "haystack-ai==${{ matrix.min-haystack-version }}"
+          uv pip list
         shell: bash
 
       - name: Run unit tests with minimum Haystack version
-        run: |
-          source .venv/bin/activate
-          pytest
+        run: uv run pytest
         shell: bash
