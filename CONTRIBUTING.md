@@ -4,7 +4,7 @@ Do you have an idea for a new feature? Did you find a bug that needs fixing?
 
 Feel free to [open an issue](https://github.com/EdAbati/outlines-haystack/issues) or submit a PR!
 
-### Setup development environment
+## Setup development environment
 
 Requirements: [`uv`](https://docs.astral.sh/uv/)
 
@@ -13,7 +13,7 @@ Requirements: [`uv`](https://docs.astral.sh/uv/)
 1. Run `uv pip install -U -e . --group dev` to install the development dependencies
 1. Run `pre-commit install` to install the pre-commit hooks. This will force the linting and formatting checks.
 
-### Run tests
+## Run tests
 
 We use `uv run` to run:
 
@@ -22,3 +22,12 @@ We use `uv run` to run:
     - Run tests (with the default python version): `uv run poe test`
     - Run tests with coverage: `uv run poe test-cov`
     - Run tests with a specific python versions: `uv run --python <version> poe test`
+
+## Release
+
+1. `uv version --bump <value>`
+1. Make PR and merge to main
+1. Pull main and `git tag <version>`
+1. `git push --tags`
+1. Wait for build and release
+1. Update GH Release page
