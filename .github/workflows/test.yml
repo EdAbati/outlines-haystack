@@ -13,11 +13,10 @@ concurrency:
 env:
   PYTHONUNBUFFERED: "1"
   FORCE_COLOR: "1"
-  UV_SYSTEM_PYTHON: "true"
 
 jobs:
-  run:
-    name: Python ${{ matrix.python-version }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
+  unit-tests:
+    name: Test with Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -42,10 +41,43 @@ jobs:
         with:
           version: "latest"
 
-      # - name: Run mypy types checking
-      #   run: uv run --python "${{ matrix.python-version }}" task typing
-      #   shell: bash
+      - name: Install dependencies
+        run: |
+          uv sync --group core --group testing --python ${{ matrix.python-version }}
 
       - name: Run unit tests
-        run: uv run --python "${{ matrix.python-version }}" poe test-cov
+        run: uv run coverage run -m pytest
+        shell: bash
+
+  min-haystack-version:
+    name: Test Min Haystack ${{ matrix.min-haystack-version }} - Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12"]
+        min-haystack-version: ["2.15.0"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Install with minimum Haystack version
+        run: |
+          uv sync --group core --group testing --python ${{ matrix.python-version }}
+          uv add "haystack-ai==${{ matrix.min-haystack-version }}"
+        shell: bash
+
+      - name: Run unit tests with minimum Haystack version
+        run: uv run pytest
         shell: bash

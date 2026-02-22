@@ -1,103 +1,62 @@
 # SPDX-FileCopyrightText: 2024-present Edoardo Abati
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Union
+import json
 
 import pytest
-from outlines import samplers
+from outlines.types import JsonSchema
 from pydantic import BaseModel
 
-from outlines_haystack.generators.utils import (
-    SamplingAlgorithm,
-    get_sampler,
-    get_sampling_algorithm,
-    schema_object_to_json_str,
-)
+from outlines_haystack.generators.utils import process_schema_object, validate_choices
 
 
-@pytest.mark.parametrize("sampling_algo_name", ["multinomial", "greedy", "beam_search"])
-def test_sampling_algorithm(sampling_algo_name: str) -> None:
-    sampler = SamplingAlgorithm(sampling_algo_name)
-    assert sampler == sampling_algo_name
+def test_validate_choices_valid() -> None:
+    # Should not raise
+    validate_choices(["yes", "no", "maybe"])
 
 
-def test_sampling_algorithm_error() -> None:
-    with pytest.raises(ValueError, match="'test' is not a valid SamplingAlgorithm"):
-        SamplingAlgorithm("test")
+def test_validate_choices_invalid() -> None:
+    with pytest.raises(ValueError, match="Choices must be a list of strings"):
+        validate_choices(["yes", 1, "maybe"])  # type: ignore[list-item]
 
 
-@pytest.mark.parametrize(
-    ("sampling_algo", "expected_sampling_algo"),
-    [
-        (SamplingAlgorithm.MULTINOMIAL, SamplingAlgorithm.MULTINOMIAL),
-        (SamplingAlgorithm.GREEDY, SamplingAlgorithm.GREEDY),
-        (SamplingAlgorithm.BEAM_SEARCH, SamplingAlgorithm.BEAM_SEARCH),
-        ("multinomial", SamplingAlgorithm.MULTINOMIAL),
-        ("greedy", SamplingAlgorithm.GREEDY),
-        ("beam_search", SamplingAlgorithm.BEAM_SEARCH),
-    ],
-)
-def test_get_sampling_algorithm(sampling_algo: SamplingAlgorithm, expected_sampling_algo: SamplingAlgorithm) -> None:
-    assert get_sampling_algorithm(sampling_algo) == expected_sampling_algo
+def test_process_schema_object_with_string() -> None:
+    schema_str = '{"type": "object", "properties": {"name": {"type": "string"}}}'
+    serializable_str, output_type = process_schema_object(schema_str)
+
+    assert serializable_str == schema_str
+    assert isinstance(output_type, JsonSchema)
 
 
-def test_get_sampling_algorithm_error() -> None:
-    with pytest.raises(ValueError, match=r"'test' is not a valid SamplingAlgorithm. Please use one of"):
-        get_sampling_algorithm("test")
+def test_process_schema_object_with_pydantic_model() -> None:
+    class User(BaseModel):
+        name: str
+        age: int
+
+    serializable_str, output_type = process_schema_object(User)
+
+    # Should serialize to JSON schema string
+    assert isinstance(serializable_str, str)
+    schema_dict = json.loads(serializable_str)
+    assert "properties" in schema_dict
+    assert "name" in schema_dict["properties"]
+    assert "age" in schema_dict["properties"]
+
+    # Output type should be the Pydantic model class itself
+    assert output_type is User
 
 
-@pytest.mark.parametrize(
-    ("sampling_algo", "expected_sampler", "sampler_kwargs"),
-    [
-        (SamplingAlgorithm.MULTINOMIAL, samplers.MultinomialSampler, {"temperature": 0.5}),
-        (SamplingAlgorithm.GREEDY, samplers.GreedySampler, {}),
-        (SamplingAlgorithm.BEAM_SEARCH, samplers.BeamSearchSampler, {"beams": 5}),
-        ("multinomial", samplers.MultinomialSampler, {"temperature": 0.5}),
-        ("greedy", samplers.GreedySampler, {}),
-        ("beam_search", samplers.BeamSearchSampler, {"beams": 5}),
-    ],
-)
-def test_get_sample(sampling_algo: SamplingAlgorithm, expected_sampler: samplers.Sampler, sampler_kwargs: dict) -> None:
-    sampler = get_sampler(sampling_algo, **sampler_kwargs)
-    assert isinstance(sampler, expected_sampler)
-    for key, value in sampler_kwargs.items():
-        if sampling_algo == SamplingAlgorithm.BEAM_SEARCH and key == "beams":
-            assert sampler.samples == value
-        else:
-            assert getattr(sampler, key) == value
+def test_process_schema_object_with_callable() -> None:
+    def my_function(name: str, age: int) -> dict:
+        return {"name": name, "age": age}
 
+    serializable_str, output_type = process_schema_object(my_function)
 
-def test_get_sampler_error() -> None:
-    with pytest.raises(ValueError, match=r"'test' is not a valid SamplingAlgorithm. Please use one of"):
-        get_sampler("test")
+    # Should convert to string representation
+    assert isinstance(serializable_str, str)
+    assert "my_function" in serializable_str
 
-
-class MockUser(BaseModel):
-    name: str
-
-
-def mock_func(a: int) -> str:
-    return str(a)
-
-
-@pytest.mark.parametrize(
-    ("schema_object", "expected_str"),
-    [
-        (
-            MockUser,
-            '{"properties": {"name": {"title": "Name", "type": "string"}}, "required": ["name"], "title": "MockUser", "type": "object"}',  # noqa: E501
-        ),
-        (
-            mock_func,
-            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
-        ),
-        (
-            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
-            '{"properties": {"a": {"title": "A", "type": "integer"}}, "required": ["a"], "title": "mock_func", "type": "object"}',  # noqa: E501
-        ),
-    ],
-)
-def test_schema_object_to_json_str(schema_object: Union[str, type[BaseModel], Callable], expected_str: str) -> None:
-    assert schema_object_to_json_str(schema_object) == expected_str
+    # Output type should be the callable itself
+    assert output_type is my_function
